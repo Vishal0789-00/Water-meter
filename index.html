@@ -104,6 +104,14 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const KEY='waterMeterReadings_v1';
+const LEGACY_READING_KEYS=[
+  'waterMeterReadings_v1',
+  'waterMeterData_v1',
+  'meterReadings',
+  'meter_readings',
+  'waterMeterRows'
+];
 const ROLE_KEY='waterMeterRole_v1';
 const PIN_KEY='waterMeterMasterPin_v1';
 let role=localStorage.getItem(ROLE_KEY)||'master';
@@ -158,7 +166,37 @@ const excelColumns=[
 const allKeys=excelColumns.map(x=>x[0]);
 let rows=load(); let group='a_lwr';
 function blank(date=''){const r={};allKeys.forEach(k=>r[k]='');r.date=date;return r}
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(x)?x:[]}catch(e){return[]}}
+function load(){
+  try{
+    const direct=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(Array.isArray(direct)) return direct;
+
+    // Recover readings saved by an earlier version of the app.
+    for(const k of LEGACY_READING_KEYS){
+      try{
+        const x=JSON.parse(localStorage.getItem(k)||'null');
+        if(Array.isArray(x) && x.some(r=>r && typeof r==='object' && 'date' in r)){
+          localStorage.setItem(KEY,JSON.stringify(x));
+          return x;
+        }
+      }catch(e){}
+    }
+
+    // Last-resort recovery: look for an array containing dated meter rows.
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(!k || k===KEY || /role|pin|cloud|supabase|sync/i.test(k)) continue;
+      try{
+        const x=JSON.parse(localStorage.getItem(k)||'null');
+        if(Array.isArray(x) && x.some(r=>r && typeof r==='object' && typeof r.date==='string')){
+          localStorage.setItem(KEY,JSON.stringify(x));
+          return x;
+        }
+      }catch(e){}
+    }
+  }catch(e){}
+  return [];
+}
 async function save(waitForCloud=false){
   localStorage.setItem(KEY,JSON.stringify(rows));
   setStatus(waitForCloud ? 'Saved locally • syncing…' : 'Saved locally • syncing…');
@@ -324,7 +362,7 @@ async function cloudPull(silent=false){
     rows=Array.from(map.values());sort();
     localStorage.setItem(KEY,JSON.stringify(rows));
     renderEntry();if(group==='all')renderAll();
-    setCloudStatus('Synced '+rows.length+' day(s)',true);
+    setCloudStatus('Cloud OK • '+rows.length+' day(s) synced',true);
     return true;
   }catch(e){
     console.warn('Cloud refresh:',e);
