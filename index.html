@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meter App - Cloud Diagnostic</title>
+<style>
+body{font-family:Arial,sans-serif;background:#eef4f8;margin:0;color:#17324a}
+.wrap{max-width:850px;margin:auto;padding:18px}
+h1{margin:8px 0 4px}.sub{color:#60798c;margin-bottom:18px}
+.card{background:white;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 2px 10px #0001}
+label{display:block;font-weight:700;margin:12px 0 6px}
+input{box-sizing:border-box;width:100%;padding:13px;border:1px solid #b8c7d2;border-radius:9px;font-size:15px}
+button{border:0;border-radius:10px;padding:13px 18px;font-size:16px;font-weight:700;margin:8px 6px 0 0;cursor:pointer;background:#087fbd;color:white}
+button.secondary{background:#e8eef3;color:#17324a}
+#overall{padding:14px;border-radius:10px;font-weight:700;margin-top:10px}
+.pass{background:#dff5e7;color:#12652e}.fail{background:#ffe2e2;color:#9b1c1c}.warn{background:#fff0c7;color:#765400}
+.row{display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid #e6edf1;padding:12px 0}
+.badge{min-width:62px;text-align:center;border-radius:8px;padding:5px 7px;font-weight:700;font-size:12px}
+.ok{background:#dff5e7;color:#12652e}.bad{background:#ffe2e2;color:#9b1c1c}.skip{background:#fff0c7;color:#765400}
+.name{font-weight:700}.detail{font-family:monospace;white-space:pre-wrap;font-size:12px;color:#526875;margin-top:4px;word-break:break-word}
+pre{background:#102532;color:#e7f3f7;padding:14px;border-radius:10px;overflow:auto;white-space:pre-wrap}
+.small{font-size:12px;color:#687f8c}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Meter App — Full Cloud Diagnostic</h1>
+<div class="sub">This page does not change your meter data. It only checks the browser, Supabase URL/key, REST API, table, Shared App ID and read access.</div>
+
+<div class="card">
+<label>Supabase Project URL</label>
+<input id="url" placeholder="https://xxxxxxxx.supabase.co">
+<label>Publishable API key</label>
+<input id="key" type="password" placeholder="sb_publishable_...">
+<label>Shared App ID</label>
+<input id="app" placeholder="APP-001">
+<button onclick="runAll()">RUN FULL DIAGNOSTIC</button>
+<button class="secondary" onclick="loadSaved()">Load saved setup</button>
+<div id="overall" class="warn">Not tested yet</div>
+</div>
+
+<div class="card">
+<h2>Results</h2>
+<div id="results"><div class="small">Press RUN FULL DIAGNOSTIC.</div></div>
+</div>
+
+<div class="card">
+<h2>Raw server responses</h2>
+<pre id="raw">No tests yet.</pre>
+</div>
+</div>
+
+<script>
+const TABLE='meter_shared';
+let raw=[];
+function addRaw(title,value){raw.push('\\n### '+title+'\\n'+String(value));document.getElementById('raw').textContent=raw.join('\\n');}
+function result(name,status,detail){
+  const el=document.getElementById('results');
+  const r=document.createElement('div'); r.className='row';
+  const b=document.createElement('div'); b.className='badge '+(status==='PASS'?'ok':status==='FAIL'?'bad':'skip'); b.textContent=status;
+  const x=document.createElement('div');
+  x.innerHTML='<div class="name">'+esc(name)+'</div><div class="detail">'+esc(detail)+'</div>';
+  r.append(b,x);el.appendChild(r);
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function normalizeUrl(v){return v.trim().replace(/\/+$/,'');}
+function mask(v){if(!v)return '(empty)';return v.length>18?v.slice(0,10)+'…'+v.slice(-5):'***';}
+
+function loadSaved(){
+  const keys=Object.keys(localStorage);
+  let found=[];
+  for(const k of keys){
+    const v=localStorage.getItem(k)||'';
+    if(/supabase|shared|app.?id|publishable|api.?key/i.test(k+v)) found.push(k+' = '+(v.length>45?mask(v):v));
+  }
+  alert(found.length?'Browser storage candidates:\\n\\n'+found.join('\\n'):'No obvious Supabase setup found in this browser.');
+}
+
+async function fetchTimeout(url,opts={},ms=15000){
+  const c=new AbortController(); const t=setTimeout(()=>c.abort(),ms);
+  try{return await fetch(url,{...opts,signal:c.signal,cache:'no-store'})}
+  finally{clearTimeout(t)}
+}
+
+async function runAll(){
+  const out=document.getElementById('results'); out.innerHTML=''; raw=[];
+  const U=normalizeUrl(document.getElementById('url').value);
+  const K=document.getElementById('key').value.trim();
+  const A=document.getElementById('app').value.trim();
+  let failures=0;
+
+  // 1 Browser
+  result('Browser / HTTPS context','PASS',
+    'Origin: '+location.origin+' | Secure context: '+(window.isSecureContext?'YES':'NO'));
+  if(location.protocol!=='https:' && location.hostname!=='localhost'){
+    result('GitHub Pages HTTPS','FAIL','This page is not HTTPS. Browser API requests may be blocked.');
+    failures++;
+  } else result('GitHub Pages HTTPS','PASS','HTTPS is available.');
+
+  // 2 Inputs
+  if(/^https:\/\/[A-Za-z0-9-]+\.supabase\.co$/i.test(U))
+    result('Supabase URL format','PASS',U);
+  else {result('Supabase URL format','FAIL','Expected https://PROJECT.supabase.co');failures++;}
+
+  if(/^sb_publishable_[A-Za-z0-9._-]+$/.test(K))
+    result('Publishable key format','PASS','Looks like a current sb_publishable_ key. Value: '+mask(K));
+  else if(/^eyJ/.test(K))
+    {result('API key format','WARN','This looks like a legacy JWT/anon key. It may still work, but confirm it belongs to this project.');}
+  else {result('API key format','FAIL','This does not look like a Supabase publishable/anon key.');failures++;}
+
+  if(A) result('Shared App ID','PASS','Using: '+A);
+  else {result('Shared App ID','FAIL','Shared App ID is empty.');failures++;}
+
+  if(failures){finish(failures);return;}
+
+  const headers={'apikey':K,'Authorization':'Bearer '+K,'Accept':'application/json'};
+
+  // 3 Supabase host reachability
+  try{
+    const r=await fetchTimeout(U+'/rest/v1/',{headers},15000);
+    const tx=await r.text();
+    addRaw('REST root HTTP '+r.status,tx);
+    if(r.ok||r.status===404){
+      result('Supabase server reachable','PASS','HTTP '+r.status+' received from Supabase.');
+    }else{
+      result('Supabase server reachable','FAIL','HTTP '+r.status+' — '+tx.slice(0,500));failures++;
+    }
+  }catch(e){
+    result('Supabase server reachable','FAIL',e.name+': '+e.message+' — check internet, URL, firewall or browser extension.');failures++;
+    finish(failures);return;
+  }
+
+  // 4 Auth/key validation via REST table request
+  const base=U+'/rest/v1/'+TABLE;
+  const q=base+'?select=app_id,date,updated_at&app_id=eq.'+encodeURIComponent(A)+'&limit=5';
+  try{
+    const r=await fetchTimeout(q,{headers},20000);
+    const tx=await r.text();
+    addRaw('TABLE READ HTTP '+r.status,tx);
+    if(r.status===401||r.status===403){
+      result('API key / authorization','FAIL','HTTP '+r.status+': '+tx.slice(0,700));failures++;
+    }else if(r.status===404){
+      result('Table exists','FAIL','HTTP 404. The table "'+TABLE+'" was not found at this Supabase project.');failures++;
+    }else if(r.ok){
+      result('API key accepted','PASS','Supabase accepted the key for the REST request.');
+      result('meter_shared table reachable','PASS','Table "'+TABLE+'" responded successfully.');
+      let data;
+      try{data=JSON.parse(tx)}catch{}
+      if(Array.isArray(data)){
+        result('Shared App ID read','PASS','Request completed for App ID "'+A+'". Rows returned: '+data.length);
+        if(data.length===0) result('Cloud data for this App ID','WARN','No rows found for this Shared App ID. This usually means the phone is saving under a different App ID, or the phone is not actually writing to this table.');
+        else result('Cloud data exists','PASS','Found '+data.length+' cloud row(s) for this App ID.');
+      }
+    }else{
+      result('REST table request','FAIL','HTTP '+r.status+': '+tx.slice(0,700));failures++;
+    }
+  }catch(e){
+    result('REST table request','FAIL',e.name+': '+e.message);failures++;
+  }
+
+  // 5 CORS
+  try{
+    const r=await fetchTimeout(base+'?select=app_id&limit=1',{headers:{...headers,'Origin':location.origin}},15000);
+    const ac=r.headers.get('access-control-allow-origin');
+    result('Browser CORS request',r.type==='opaque'?'WARN':'PASS',
+      'Fetch completed. access-control-allow-origin: '+(ac||'(not exposed)'));
+  }catch(e){
+    result('Browser CORS request','FAIL',e.name+': '+e.message);failures++;
+  }
+
+  // 6 Browser storage sanity
+  let storageText='localStorage available: '+(!!window.localStorage);
+  try{
+    localStorage.setItem('__meter_diag__','1');localStorage.removeItem('__meter_diag__');
+    result('Browser local storage','PASS',storageText);
+  }catch(e){result('Browser local storage','FAIL',e.message);failures++;}
+
+  // 7 Compare app ID case/whitespace
+  if(A!==A.trim()) {result('App ID whitespace','FAIL','Shared App ID contains leading/trailing spaces.');failures++;}
+  else result('App ID whitespace','PASS','No leading/trailing spaces.');
+
+  finish(failures);
+}
+
+function finish(f){
+  const o=document.getElementById('overall');
+  if(f===0){o.className='pass';o.textContent='ALL DIAGNOSTIC CHECKS PASSED — Supabase connection and read access are working.';}
+  else{o.className='fail';o.textContent=f+' CHECK(S) FAILED — use the exact FAIL message above. Do not change the database yet.';}
+}
+</script>
+</body>
+</html>
