@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b2942">
+<title>Water Meter Entry</title>
+<style>
+:root{--bg:#eef3f8;--card:#fff;--text:#142333;--muted:#657587;--line:#d4dde7;--dark:#0b2942;--blue:#1769aa;--green:#087a55;--orange:#c75b12;--purple:#6b4bb6;--focus:#dff0ff}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.top{position:sticky;top:0;z-index:50;background:var(--dark);color:#fff;box-shadow:0 2px 12px #0003}.topin{max-width:1600px;margin:auto;padding:10px 14px;display:flex;align-items:center;gap:14px}.brand{flex:1}.brand h1{margin:0;font-size:19px}.brand p{margin:2px 0 0;font-size:12px;opacity:.75}.datebox{display:flex;align-items:center;gap:6px}.datebox input{width:150px;border-radius:8px;border:1px solid #ffffff55;padding:8px;background:#fff;color:#123}
+.app{max-width:1600px;margin:auto;padding:12px}.toolbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.btn{background:#fff;color:#183247;border:1px solid #c8d3de;border-radius:9px;padding:9px 12px;font-weight:700}.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.btn.green{background:var(--green);color:#fff;border-color:var(--green)}.btn.danger{color:#b42318}.status{margin-left:auto;color:var(--muted);font-size:12px}
+.selector{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:10px;position:sticky;top:61px;z-index:40;box-shadow:0 2px 8px #0000000c}.sel{border:2px solid transparent;border-radius:10px;padding:10px 7px;background:#f5f8fb;font-weight:800;color:#24384b}.sel small{display:block;font-size:10px;font-weight:600;opacity:.65;margin-top:2px}.sel.active{color:#fff}.sel.a.active{background:var(--blue)}.sel.ag.active{background:var(--green)}.sel.b.active{background:var(--orange)}.sel.bg.active{background:var(--purple)}.sel.all.active{background:var(--dark)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 1px 4px #0000000b}.panelhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.panelhead h2{margin:0;font-size:17px}.panelhead span{font-size:12px;color:var(--muted)}
+.meters{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:10px}.meter{border:1px solid var(--line);border-radius:11px;background:#fbfcfe;padding:9px}.meter .name{font-weight:800;font-size:13px}.meter .id{font-size:10px;color:var(--muted);margin:2px 0 7px}.meter input{width:100%;height:52px;border:1px solid #bcc9d6;border-radius:9px;background:#fff;text-align:center;font-size:24px;font-weight:800;outline:none}.meter input:focus{border:2px solid var(--blue);background:var(--focus)}.meter .hint{font-size:10px;color:var(--muted);margin-top:5px;text-align:center}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.actions .btn{flex:0 0 auto}
+.history{margin-top:12px}.history h3{font-size:14px;margin:0 0 7px}.histwrap{overflow:auto;border:1px solid var(--line);border-radius:9px;max-height:35vh}.hist{border-collapse:collapse;width:100%;min-width:700px}.hist th,.hist td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:right;white-space:nowrap;font-size:12px}.hist th{position:sticky;top:0;background:#f3f6f9;text-align:center}.hist th:first-child,.hist td:first-child{text-align:left;position:sticky;left:0;background:#f8fafc;z-index:2}.hist td{cursor:pointer}.hist tr:hover td{background:#eef7ff}
+.allview{display:none}.allview .scroll{overflow:auto;max-height:70vh}.alltable{border-collapse:separate;border-spacing:0;min-width:2450px;width:max-content}.alltable th,.alltable td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap}.alltable th{background:#f4f7fa;padding:7px;font-size:11px;position:sticky;top:0;z-index:3}.alltable td{padding:3px;background:#fff}.alltable td input{width:100px;border:0;padding:7px;text-align:right;background:transparent;outline:none}.alltable td:first-child,.alltable th:first-child{position:sticky;left:0;z-index:5;background:#fff}.groupA{background:#e9f4ff!important}.groupAG{background:#e9f8f0!important}.groupB{background:#fff0e6!important}.groupBG{background:#f1eaff!important}.sep{min-width:60px;text-align:center;color:#aab4bf}.empty{text-align:center;color:var(--muted);padding:25px}.foot{font-size:11px;color:var(--muted);padding:9px 2px}
+@media(max-width:900px){.topin{align-items:flex-start}.datebox{flex-direction:column;align-items:stretch}.datebox input{width:140px}.selector{top:88px;grid-template-columns:repeat(3,1fr)}.sel{padding:9px 4px;font-size:12px}.meters{grid-template-columns:repeat(2,minmax(140px,1fr))}.meter input{height:58px;font-size:25px}.status{width:100%;margin-left:0}.app{padding:8px}}
+@media(max-width:520px){.brand h1{font-size:16px}.brand p{display:none}.selector{grid-template-columns:repeat(2,1fr)}.meters{grid-template-columns:1fr 1fr;gap:7px}.meter{padding:7px}.meter input{height:55px}.meter .name{font-size:12px}.meter .id{font-size:9px}.btn{padding:9px 10px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="topin"><div class="brand"><h1>Water Meter Entry</h1><p>Fast daily entry • A/B Wing • LWR/GWR • Excel copy</p></div><div class="datebox"><label for="entryDate">Date</label><input id="entryDate" type="date"></div></div></header>
+<main class="app">
+  <div class="toolbar">
+    <button class="btn primary" onclick="saveCurrent()">Save reading</button>
+    <button class="btn" onclick="newToday()">New today</button>
+    <button class="btn green" onclick="copyFullRow()">Copy full Excel row</button>
+    <button class="btn" onclick="copySection()">Copy this section</button>
+    <button class="btn" onclick="copyAll()">Copy all rows</button>
+    <button class="btn" onclick="exportBackup()">Backup</button>
+    <label class="btn">Restore <input id="restore" type="file" accept=".json" hidden onchange="restoreBackup(event)"></label>
+    <button class="btn danger" onclick="clearAll()">Clear all</button>
+    <span id="status" class="status">Ready</span>
+  </div>
+
+  <nav class="selector" aria-label="Meter group selection">
+    <button class="sel a active" data-group="a_lwr" onclick="selectGroup('a_lwr')">A Wing LWR<small>7 meters</small></button>
+    <button class="sel ag" data-group="a_gwr" onclick="selectGroup('a_gwr')">A Wing GWR<small>7 meters</small></button>
+    <button class="sel b" data-group="b_lwr" onclick="selectGroup('b_lwr')">B Wing LWR<small>8 meters</small></button>
+    <button class="sel bg" data-group="b_gwr" onclick="selectGroup('b_gwr')">B Wing GWR<small>7 meters</small></button>
+    <button class="sel all" data-group="all" onclick="selectGroup('all')">All meters<small>Excel view</small></button>
+  </nav>
+
+  <section id="entryPanel" class="panel">
+    <div class="panelhead"><h2 id="groupTitle">A Wing LWR Water meter reading</h2><span id="entryInfo">Enter today's readings. Auto-saves.</span></div>
+    <div id="meters" class="meters"></div>
+    <div class="actions">
+      <button class="btn primary" onclick="saveCurrent()">✓ Save</button>
+      <button class="btn green" onclick="copySection()">Copy section for Excel</button>
+      <button class="btn" onclick="clearSection()">Clear section</button>
+      <button class="btn" onclick="previousDay()">← Previous date</button>
+      <button class="btn" onclick="nextDay()">Next date →</button>
+    </div>
+    <div class="history"><h3>Recent readings — tap a row to edit that date</h3><div class="histwrap"><table class="hist"><thead id="histHead"></thead><tbody id="histBody"></tbody></table></div></div>
+  </section>
+
+  <section id="allPanel" class="panel allview"><div class="panelhead"><h2>All meters / Excel layout</h2><span>Full row layout preserved for direct paste</span></div><div class="scroll"><table class="alltable"><thead id="allHead"></thead><tbody id="allBody"></tbody></table></div></section>
+  <div class="foot">Data is saved locally in this browser/device. Use Backup regularly. The three B Wing LWR meter IDs that were unreadable in the supplied screenshots are shown as <b>180115??</b>; their entry cells still work normally.</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const KEY='waterMeterDailyReadings_v1';
+const groups={
+ a_lwr:{title:'A Wing LWR Water meter reading',cls:'a',cols:[
+  ['a_lwr_lgug','LG & UG Floor','18011568'],['a_lwr_1','1st Floor','18011552'],['a_lwr_2','2nd Floor','18011554'],['a_lwr_3','3rd Floor','18011559'],['a_lwr_4','4th Floor','18011569'],['a_lwr_5','5th Floor','18011570'],['a_lwr_6','6th Floor','18011550']]},
+ a_gwr:{title:'A Wing GWR Water meter reading',cls:'ag',cols:[
+  ['a_gwr_1','1st Floor','18011564'],['a_gwr_2','2nd Floor','18011567'],['a_gwr_3','3rd Floor','18011555'],['a_gwr_4','4th Floor','18011542'],['a_gwr_5','5th Floor','18011546'],['a_gwr_6','6th Floor','18008879'],['a_gwr_gym','GYM','18011543']]},
+ b_lwr:{title:'B Wing LWR Water meter reading',cls:'b',cols:[
+  ['b_lwr_garden','Garden','18011541'],['b_lwr_lgug','LG & UG Floor','18011551'],['b_lwr_1','1st Floor','18011545'],['b_lwr_2','2nd Floor','180115??'],['b_lwr_3','3rd Floor','180115??'],['b_lwr_4','4th Floor','180115??'],['b_lwr_5','5th Floor','18011562'],['b_lwr_6','6th Floor','18011566']]},
+ b_gwr:{title:'B Wing GWR Water meter reading',cls:'bg',cols:[
+  ['b_gwr_lgug','LG & UG Floor','18004563'],['b_gwr_1','1st Floor','18004557'],['b_gwr_2','2nd Floor','18007010'],['b_gwr_3','3rd Floor','18011548'],['b_gwr_4','4th Floor','18011549'],['b_gwr_5','5th Floor','18011562'],['b_gwr_6','6th Floor','18011566']]}
+};
+const excelColumns=[
+ ['date','Date',''],
+ ...groups.a_lwr.cols,[['cafe','Cafe','190000194'],['ac_point','AC Point','18008899']],
+ ['a_gwr_sep','A Wing GWR',''],...groups.a_gwr.cols,
+ ['b_lwr_sep','B Wing LWR',''],...groups.b_lwr.cols,
+ ['b_gwr_sep','B Wing GWR',''],...groups.b_gwr.cols
+];
+const allKeys=excelColumns.map(x=>x[0]);
+let rows=load(); let group='a_lwr';
+function blank(date=''){const r={};allKeys.forEach(k=>r[k]='');r.date=date;return r}
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(x)?x:[]}catch(e){return[]}}
+async function save(){
+  localStorage.setItem(KEY,JSON.stringify(rows));
+  setStatus('Saved locally '+new Date().toLocaleTimeString());
+  if(cloudReady) {
+    const d=document.getElementById('entryDate')?.value;
+    if(d) await cloudUpsert(ensureDateNoSave(d));
+  }
+}
+function ensureDateNoSave(d){let r=rows.find(x=>x.date===d);if(!r){r=blank(d);rows.push(r);sort();localStorage.setItem(KEY,JSON.stringify(rows));}return r}
+
+function setStatus(s){document.getElementById('status').textContent=s}
+function today(){const d=new Date();return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+function ensureDate(d){let r=rows.find(x=>x.date===d);if(!r){r=blank(d);rows.push(r);sort();localStorage.setItem(KEY,JSON.stringify(rows));}return r}
+function sort(){rows.sort((a,b)=>(a.date||'9999-99-99').localeCompare(b.date||'9999-99-99'))}
+function selectGroup(g){group=g;document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group===g));document.getElementById('entryPanel').style.display=g==='all'?'none':'block';document.getElementById('allPanel').style.display=g==='all'?'block':'none';if(g==='all')renderAll();else renderEntry()}
+function renderEntry(){const d=document.getElementById('entryDate').value||today();document.getElementById('entryDate').value=d;const meta=groups[group];document.getElementById('groupTitle').textContent=meta.title;document.getElementById('entryInfo').textContent='Date: '+d+' • changes save automatically';const r=ensureDate(d);const box=document.getElementById('meters');box.innerHTML='';meta.cols.forEach(([key,name,id],i)=>{const div=document.createElement('div');div.className='meter';div.innerHTML='<div class="name">'+name+'</div><div class="id">Meter '+id+'</div><input inputmode="decimal" type="number" step="any" data-key="'+key+'" value="'+esc(r[key]||'')+'" aria-label="'+name+' meter reading"><div class="hint">Press Enter → next meter</div>';const inp=div.querySelector('input');inp.addEventListener('input',()=>{r[key]=inp.value;save()});inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const next=box.querySelectorAll('input')[i+1];if(next)next.focus()}});box.appendChild(div)});renderHistory()}
+function esc(v){return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function renderHistory(){const h=document.getElementById('histHead'),b=document.getElementById('histBody'),meta=groups[group];h.innerHTML='<tr><th>Date</th>'+meta.cols.map(x=>'<th>'+x[1]+'</th>').join('')+'</tr>';b.innerHTML='';rows.slice().reverse().slice(0,30).forEach(r=>{const tr=document.createElement('tr');tr.onclick=()=>{document.getElementById('entryDate').value=r.date;renderEntry();window.scrollTo({top:0,behavior:'smooth'})};tr.innerHTML='<td>'+formatDate(r.date)+'</td>'+meta.cols.map(x=>'<td>'+esc(r[x[0]]||'')+'</td>').join('');b.appendChild(tr)});if(!rows.length)b.innerHTML='<tr><td class="empty" colspan="20">No readings yet.</td></tr>'}
+function formatDate(d){if(!d)return'';const [y,m,day]=d.split('-');return day+'/'+m+'/'+y}
+function saveCurrent(){const d=document.getElementById('entryDate').value;if(!d){alert('Select a date first.');return}ensureDate(d);save();setStatus('Saved '+formatDate(d))}
+function newToday(){
+const CLOUD_CONFIG_KEY='water-meter-shared-cloud-v2';
+let sb=null, cloudReady=false, sharedAppId='';
+
+const CLOUD_SQL=`create table if not exists public.meter_shared (
+  app_id text not null,
+  date text not null,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  primary key (app_id, date)
+);
+
+alter table public.meter_shared enable row level security;
+
+drop policy if exists "public read meter data" on public.meter_shared;
+create policy "public read meter data"
+on public.meter_shared for select to anon using (true);
+
+drop policy if exists "public insert meter data" on public.meter_shared;
+create policy "public insert meter data"
+on public.meter_shared for insert to anon with check (true);
+
+drop policy if exists "public update meter data" on public.meter_shared;
+create policy "public update meter data"
+on public.meter_shared for update to anon using (true) with check (true);
+
+grant select, insert, update on public.meter_shared to anon;`;
+
+function getCloudConfig(){try{return JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY)||'null')}catch(e){return null}}
+function setCloudStatus(s,ok=false){const el=document.getElementById('cloudStatus');if(el){el.textContent=s;el.style.color=ok?'#087a55':'#657587'}}
+function openCloudSetup(){
+  const c=getCloudConfig()||{};
+  document.getElementById('sbUrl').value=c.url||'';
+  document.getElementById('sbKey').value=c.key||'';
+  document.getElementById('sbAppId').value=c.appId||'';
+  document.getElementById('cloudSQL').textContent=CLOUD_SQL;
+  document.getElementById('cloudModal').style.display='block';
+}
+function closeCloudSetup(){document.getElementById('cloudModal').style.display='none'}
+function saveCloudConfig(){
+  const url=document.getElementById('sbUrl').value.trim().replace(/\/$/,'');
+  const key=document.getElementById('sbKey').value.trim();
+  const appId=document.getElementById('sbAppId').value.trim();
+  if(!url||!key||!appId){alert('Enter all three fields. Use the same App ID on your phone and PC.');return false}
+  localStorage.setItem(CLOUD_CONFIG_KEY,JSON.stringify({url,key,appId}));
+  sb=supabase.createClient(url,key);
+  sharedAppId=appId;cloudReady=true;
+  setCloudStatus('Shared sync configured',true);
+  closeCloudSetup();
+  return true;
+}
+async function initCloud(){
+  const c=getCloudConfig();
+  if(!c){setCloudStatus('Not configured');return}
+  try{
+    sb=supabase.createClient(c.url,c.key);
+    sharedAppId=c.appId;
+    cloudReady=true;
+    setCloudStatus('Shared sync ready',true);
+    await cloudPull(true);
+  }catch(e){cloudReady=false;setCloudStatus('Configuration error')}
+}
+async function cloudUpsert(r){
+  if(!cloudReady||!sharedAppId||!r?.date)return;
+  const {error}=await sb.from('meter_shared').upsert(
+    {app_id:sharedAppId,date:r.date,data:r,updated_at:new Date().toISOString()},
+    {onConflict:'app_id,date'}
+  );
+  if(error)setCloudStatus('Cloud save error: '+error.message);
+  else setCloudStatus('Synced '+new Date().toLocaleTimeString(),true);
+}
+async function cloudPull(silent=false){
+  if(!cloudReady||!sharedAppId){if(!silent)openCloudSetup();return}
+  setCloudStatus('Syncing…');
+  const {data,error}=await sb.from('meter_shared').select('date,data').eq('app_id',sharedAppId).order('date');
+  if(error){if(!silent)alert(error.message);setCloudStatus('Cloud error');return}
+  const remote=(data||[]).map(x=>x.data).filter(Boolean);
+  const map=new Map(rows.map(r=>[r.date,r]));
+  remote.forEach(rr=>{if(rr.date)map.set(rr.date,{...blank(rr.date),...rr})});
+  rows=Array.from(map.values());sort();
+  localStorage.setItem(KEY,JSON.stringify(rows));
+  renderEntry();if(group==='all')renderAll();
+  setCloudStatus('Synced '+rows.length+' day(s)',true);
+}
+async function cloudPushAll(){
+  if(!cloudReady||!sharedAppId){openCloudSetup();return}
+  if(!rows.length){alert('No local readings to upload.');return}
+  const payload=rows.map(r=>({app_id:sharedAppId,date:r.date,data:r,updated_at:new Date().toISOString()}));
+  const {error}=await sb.from('meter_shared').upsert(payload,{onConflict:'app_id,date'});
+  if(error)alert(error.message);else setCloudStatus('Uploaded '+rows.length+' day(s)',true);
+}
+
+document.getElementById('entryDate').value=today();ensureDate(today());renderEntry();document.querySelector('.meter input')?.focus()}
+function clearSection(){const d=document.getElementById('entryDate').value;const r=ensureDate(d);if(!confirm('Clear '+groups[group].title+' for '+formatDate(d)+'?'))return;groups[group].cols.forEach(x=>r[x[0]]='');save();renderEntry()}
+function previousDay(){const d=new Date(document.getElementById('entryDate').value+'T00:00:00');d.setDate(d.getDate()-1);document.getElementById('entryDate').value=iso(d);renderEntry()}
+function nextDay(){const d=new Date(document.getElementById('entryDate').value+'T00:00:00');d.setDate(d.getDate()+1);document.getElementById('entryDate').value=iso(d);renderEntry()}
+function iso(d){return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+function clean(v){return v==null?'':String(v).replace(/\t/g,' ').replace(/\r?\n/g,' ')}
+function rowTSV(r){return excelColumns.map(x=>x[0].endsWith('_sep')?'':clean(r[x[0]])).join('\t')}
+function sectionTSV(r,g){return groups[g].cols.map(x=>clean(r[x[0]])).join('\t')}
+async function copyText(t){try{await navigator.clipboard.writeText(t)}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}}
+function copyFullRow(){const d=document.getElementById('entryDate').value;const r=ensureDate(d);copyText(rowTSV(r)).then(()=>setStatus('Copied full Excel row for '+formatDate(d)))}
+function copySection(){const d=document.getElementById('entryDate').value;const r=ensureDate(d);copyText(sectionTSV(r,group)).then(()=>setStatus('Copied '+groups[group].title+' section'))}
+function copyAll(){sort();if(!rows.length){alert('No saved rows.');return}copyText(rows.map(rowTSV).join('\r\n')).then(()=>setStatus('Copied '+rows.length+' Excel rows'))}
+function renderAll(){const h=document.getElementById('allHead'),b=document.getElementById('allBody');h.innerHTML='<tr>'+excelColumns.map(x=>'<th class="'+groupClass(x[0])+'">'+x[1]+'</th>').join('')+'</tr>';b.innerHTML='';rows.forEach((r,idx)=>{const tr=document.createElement('tr');excelColumns.forEach(x=>{const td=document.createElement('td');td.className=groupClass(x[0]);if(x[0].endsWith('_sep')){td.className+=' sep';td.textContent='—'}else{const inp=document.createElement('input');inp.type=x[0]==='date'?'date':'number';inp.step='any';inp.value=r[x[0]]||'';inp.addEventListener('input',()=>{r[x[0]]=inp.value;save()});td.appendChild(inp)}tr.appendChild(td)});b.appendChild(tr)})}
+function groupClass(k){if(k.startsWith('a_lwr')||k==='cafe'||k==='ac_point')return'groupA';if(k.startsWith('a_gwr'))return'groupAG';if(k.startsWith('b_lwr'))return'groupB';if(k.startsWith('b_gwr'))return'groupBG';return''}
+function exportBackup(){const blob=new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),rows},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='water-meter-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);setStatus('Backup downloaded')}
+function restoreBackup(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!Array.isArray(o.rows))throw 0;rows=o.rows.map(old=>{const r=blank(old.date||'');allKeys.forEach(k=>r[k]=old[k]??'');return r});sort();save();renderEntry();setStatus('Backup restored')}catch(err){alert('Invalid backup file.')}};rd.readAsText(f);e.target.value=''}
+function clearAll(){if(!confirm('Delete ALL saved readings from this browser?'))return;rows=[];localStorage.removeItem(KEY);renderEntry();setStatus('All readings cleared')}
+document.getElementById('entryDate').value=today();document.getElementById('entryDate').addEventListener('change',renderEntry);renderEntry();initCloud();
+</script>
+</body>
+</html>
