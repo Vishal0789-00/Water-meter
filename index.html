@@ -19,6 +19,12 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
 .meters{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:10px}.meter{border:1px solid var(--line);border-radius:11px;background:#fbfcfe;padding:9px}.meter .name{font-weight:800;font-size:13px}.meter .id{font-size:10px;color:var(--muted);margin:2px 0 7px}.meter input{width:100%;height:52px;border:1px solid #bcc9d6;border-radius:9px;background:#fff;text-align:center;font-size:24px;font-weight:800;outline:none}.meter input:focus{border:2px solid var(--blue);background:var(--focus)}.meter .hint{font-size:10px;color:var(--muted);margin-top:5px;text-align:center}
 .actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.actions .btn{flex:0 0 auto}
 .history{margin-top:12px}.history h3{font-size:14px;margin:0 0 7px}.histwrap{overflow:auto;border:1px solid var(--line);border-radius:9px;max-height:35vh}.hist{border-collapse:collapse;width:100%;min-width:700px}.hist th,.hist td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:right;white-space:nowrap;font-size:12px}.hist th{position:sticky;top:0;background:#f3f6f9;text-align:center}.hist th:first-child,.hist td:first-child{text-align:left;position:sticky;left:0;background:#f8fafc;z-index:2}.hist td{cursor:pointer}.hist tr:hover td{background:#eef7ff}
+.excel-source-table{border-collapse:collapse;width:max-content;min-width:100%;font-size:11px;background:#fff}
+.excel-source-table caption{text-align:left;padding:8px;font-weight:800;color:var(--dark)}
+.excel-source-table th,.excel-source-table td{border:1px solid var(--line);padding:6px 8px;white-space:nowrap}
+.excel-source-table th{background:#f4f7fa;font-weight:800;text-align:center}
+.excel-source-table td{text-align:right}
+.excel-source-table td:first-child{text-align:left}
 .allview{display:none}.allview .scroll{overflow:auto;max-height:70vh}.alltable{border-collapse:separate;border-spacing:0;min-width:2450px;width:max-content}.alltable th,.alltable td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap}.alltable th{background:#f4f7fa;padding:7px;font-size:11px;position:sticky;top:0;z-index:3}.alltable td{padding:3px;background:#fff}.alltable td input{width:100px;border:0;padding:7px;text-align:right;background:transparent;outline:none}.alltable td:first-child,.alltable th:first-child{position:sticky;left:0;z-index:5;background:#fff}.groupA{background:#e9f4ff!important}.groupAG{background:#e9f8f0!important}.groupB{background:#fff0e6!important}.groupBG{background:#f1eaff!important}.sep{min-width:60px;text-align:center;color:#aab4bf}.empty{text-align:center;color:var(--muted);padding:25px}.foot{font-size:11px;color:var(--muted);padding:9px 2px}
 @media(max-width:900px){.topin{align-items:flex-start}.datebox{flex-direction:column;align-items:stretch}.datebox input{width:140px}.selector{top:88px;grid-template-columns:repeat(3,1fr)}.sel{padding:9px 4px;font-size:12px}.meters{grid-template-columns:repeat(2,minmax(140px,1fr))}.meter input{height:58px;font-size:25px}.status{width:100%;margin-left:0}.app{padding:8px}}
 @media(max-width:520px){.brand h1{font-size:16px}.brand p{display:none}.selector{grid-template-columns:repeat(2,1fr)}.meters{grid-template-columns:1fr 1fr;gap:7px}.meter{padding:7px}.meter input{height:55px}.meter .name{font-size:12px}.meter .id{font-size:9px}.btn{padding:9px 10px}}
@@ -100,7 +106,19 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
   </section>
 
   <section id="allPanel" class="panel allview"><div class="panelhead"><h2>All meters / Excel layout</h2><span>31 meters • Excel order preserved for direct paste</span></div><div class="scroll"><table class="alltable"><thead id="allHead"></thead><tbody id="allBody"></tbody></table></div></section>
-  <div class="foot">31 meters total: A Wing LWR 9, A Wing GWR 7, B Wing LWR 8, B Wing GWR 7. Use <b>Copy full Excel row</b> to copy the complete daily row in the same order as the Excel sheet. Use Backup regularly.</div>
+  <details id="excelSourcePanel" style="margin:12px 0">
+  <summary style="cursor:pointer;font-weight:800;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:9px">
+    Excel / Power Query — All 31 meters
+  </summary>
+  <div style="margin-top:8px;border:1px solid var(--line);border-radius:9px;overflow:auto;background:#fff">
+    <table id="WaterMeter_All_31" class="excel-source-table">
+      <caption>WaterMeter_All_31 — 31 meters</caption>
+      <thead id="excelSourceHead"></thead>
+      <tbody id="excelSourceBody"></tbody>
+    </table>
+  </div>
+</details>
+<div class="foot">31 meters total: A Wing LWR 9, A Wing GWR 7, B Wing LWR 8, B Wing GWR 7. Use <b>Copy full Excel row</b> to copy the complete daily row in the same order as the Excel sheet. Use Backup regularly.</div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -199,6 +217,7 @@ function load(){
 }
 async function save(waitForCloud=false){
   localStorage.setItem(KEY,JSON.stringify(rows));
+  renderExcelSource();
   setStatus(waitForCloud ? 'Saved locally • syncing…' : 'Saved locally • syncing…');
   if(!cloudReady) return false;
   const d=document.getElementById('entryDate')?.value;
@@ -216,7 +235,7 @@ async function save(waitForCloud=false){
   });
   return true;
 }
-function ensureDateNoSave(d){let r=rows.find(x=>x.date===d);if(!r){r=blank(d);rows.push(r);sort();localStorage.setItem(KEY,JSON.stringify(rows));}return r}
+function ensureDateNoSave(d){let r=rows.find(x=>x.date===d);if(!r){r=blank(d);rows.push(r);sort();localStorage.setItem(KEY,JSON.stringify(rows));renderExcelSource();}return r}
 
 function setStatus(s){document.getElementById('status').textContent=s}
 const CLOUD_CONFIG_KEY='water-meter-shared-cloud-v2';
@@ -361,7 +380,7 @@ async function cloudPull(silent=false){
     remote.forEach(rr=>{if(rr.date)map.set(rr.date,{...blank(rr.date),...rr})});
     rows=Array.from(map.values());sort();
     localStorage.setItem(KEY,JSON.stringify(rows));
-    renderEntry();if(group==='all')renderAll();
+    renderEntry();if(group==='all')renderAll();renderExcelSource();
     setCloudStatus('Cloud OK • '+rows.length+' day(s) synced',true);
     return true;
   }catch(e){
@@ -404,7 +423,7 @@ async function cloudTest(){
 function today(){const d=new Date();return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 function ensureDate(d){let r=rows.find(x=>x.date===d);if(!r){r=blank(d);rows.push(r);sort();localStorage.setItem(KEY,JSON.stringify(rows));}return r}
 function sort(){rows.sort((a,b)=>(a.date||'9999-99-99').localeCompare(b.date||'9999-99-99'))}
-function selectGroup(g){group=g;document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group===g));document.getElementById('entryPanel').style.display=g==='all'?'none':'block';document.getElementById('allPanel').style.display=g==='all'?'block':'none';if(g==='all')renderAll();else renderEntry()}
+function selectGroup(g){group=g;document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group===g));document.getElementById('entryPanel').style.display=g==='all'?'none':'block';document.getElementById('allPanel').style.display=g==='all'?'block':'none';if(g==='all')renderAll();else renderEntry();renderExcelSource()}
 function renderEntry(){
   const d=document.getElementById('entryDate').value||today();
   document.getElementById('entryDate').value=d;
@@ -459,12 +478,77 @@ async function copyText(t){try{await navigator.clipboard.writeText(t)}catch(e){c
 function copyFullRow(){const d=document.getElementById('entryDate').value;const r=ensureDate(d);copyText(rowTSV(r)).then(()=>setStatus('Copied full Excel row for '+formatDate(d)))}
 function copySection(){const d=document.getElementById('entryDate').value;const r=ensureDate(d);copyText(sectionTSV(r,group)).then(()=>setStatus('Copied '+groups[group].title+' section'))}
 function copyAll(){sort();if(!rows.length){alert('No saved rows.');return}copyText(rows.map(rowTSV).join('\r\n')).then(()=>setStatus('Copied '+rows.length+' Excel rows'))}
-function renderAll(){const h=document.getElementById('allHead'),b=document.getElementById('allBody');h.innerHTML='<tr>'+excelColumns.map(x=>'<th class="'+groupClass(x[0])+'">'+x[1]+'</th>').join('')+'</tr>';b.innerHTML='';rows.forEach((r,idx)=>{const tr=document.createElement('tr');excelColumns.forEach(x=>{const td=document.createElement('td');td.className=groupClass(x[0]);if(x[0].endsWith('_sep')){td.className+=' sep';td.textContent='—'}else{const inp=document.createElement('input');inp.type=x[0]==='date'?'date':'number';inp.step='any';inp.value=r[x[0]]||'';inp.addEventListener('input',()=>{r[x[0]]=inp.value;save()});td.appendChild(inp)}tr.appendChild(td)});b.appendChild(tr)})}
+function renderExcelSource(){
+  const h=document.getElementById('excelSourceHead');
+  const b=document.getElementById('excelSourceBody');
+  if(!h||!b)return;
+
+  // Exactly 31 meter columns + Date. No separator columns, no input boxes.
+  const cols=[['date','Date','']];
+  for(const g of ['a_lwr','a_gwr','b_lwr','b_gwr']){
+    for(const x of groups[g].cols) cols.push(x);
+  }
+
+  h.innerHTML='<tr>'+cols.map(x=>{
+    const label=x[0]==='date'?'Date':
+      x[1]+' — '+x[2];
+    return '<th>'+escapeHtml(label)+'</th>';
+  }).join('')+'</tr>';
+
+  b.innerHTML=rows.map(r=>{
+    return '<tr>'+cols.map(x=>{
+      return '<td>'+escapeHtml(r[x[0]]??'')+'</td>';
+    }).join('')+'</tr>';
+  }).join('');
+}
+
+function escapeHtml(v){
+  return String(v??'').replace(/[&<>"']/g,m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+function renderAll(){
+  const h=document.getElementById('allHead'),b=document.getElementById('allBody');
+  const editable=role==='master';
+  h.innerHTML='<tr>'+excelColumns.map(x=>'<th class="'+groupClass(x[0])+'">'+x[1]+'</th>').join('')+'</tr>';
+  b.innerHTML='';
+  const panel=document.getElementById('allPanel');
+  let note=panel.querySelector('.all-readonly-note');
+  if(!editable){
+    if(!note){
+      note=document.createElement('div');
+      note.className='readonly-note all-readonly-note';
+      panel.insertBefore(note,panel.querySelector('.scroll'));
+    }
+    note.textContent='Basic / Technician access: All meters is view-only. Only today’s reading can be edited from the meter sections.';
+  }else if(note){note.remove()}
+  rows.forEach((r,idx)=>{
+    const tr=document.createElement('tr');
+    excelColumns.forEach(x=>{
+      const td=document.createElement('td');
+      td.className=groupClass(x[0]);
+      if(x[0].endsWith('_sep')){
+        td.className+=' sep'; td.textContent='—';
+      }else if(editable){
+        const inp=document.createElement('input');
+        inp.type=x[0]==='date'?'date':'number';
+        inp.step='any'; inp.value=r[x[0]]||'';
+        inp.addEventListener('input',()=>{r[x[0]]=inp.value;save()});
+        td.appendChild(inp);
+      }else{
+        td.textContent=r[x[0]]||'';
+      }
+      tr.appendChild(td);
+    });
+    b.appendChild(tr);
+  });
+}
 function groupClass(k){if(k.startsWith('a_lwr')||k==='cafe'||k==='ac_point')return'groupA';if(k.startsWith('a_gwr'))return'groupAG';if(k.startsWith('b_lwr'))return'groupB';if(k.startsWith('b_gwr'))return'groupBG';return''}
 function exportBackup(){const blob=new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),rows},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='water-meter-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);setStatus('Backup downloaded')}
 function restoreBackup(e){if(role!=='master'){alert('Master access required.');e.target.value='';return}const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!Array.isArray(o.rows))throw 0;rows=o.rows.map(old=>{const r=blank(old.date||'');allKeys.forEach(k=>r[k]=old[k]??'');return r});sort();save();renderEntry();setStatus('Backup restored')}catch(err){alert('Invalid backup file.')}};rd.readAsText(f);e.target.value=''}
 function clearAll(){if(role!=='master'){alert('Master access required.');return}if(!confirm('Delete ALL saved readings from this browser?'))return;rows=[];localStorage.removeItem(KEY);renderEntry();setStatus('All readings cleared')}
-document.getElementById('entryDate').value=today();document.getElementById('entryDate').addEventListener('change',renderEntry);updateRoleUI();renderEntry();initCloud();
+document.getElementById('entryDate').value=today();document.getElementById('entryDate').addEventListener('change',renderEntry);updateRoleUI();renderEntry();renderExcelSource();initCloud();
 </script>
 </body>
 </html>
