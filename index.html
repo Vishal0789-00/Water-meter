@@ -28,7 +28,20 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
 .allview{display:none}.allview .scroll{overflow:auto;max-height:70vh}.alltable{border-collapse:separate;border-spacing:0;min-width:2450px;width:max-content}.alltable th,.alltable td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap}.alltable th{background:#f4f7fa;padding:7px;font-size:11px;position:sticky;top:0;z-index:3}.alltable td{padding:3px;background:#fff}.alltable td input{width:100px;border:0;padding:7px;text-align:right;background:transparent;outline:none}.alltable td:first-child,.alltable th:first-child{position:sticky;left:0;z-index:5;background:#fff}.groupA{background:#e9f4ff!important}.groupAG{background:#e9f8f0!important}.groupB{background:#fff0e6!important}.groupBG{background:#f1eaff!important}.sep{min-width:60px;text-align:center;color:#aab4bf}.empty{text-align:center;color:var(--muted);padding:25px}.foot{font-size:11px;color:var(--muted);padding:9px 2px}
 @media(max-width:900px){.topin{align-items:flex-start}.datebox{flex-direction:column;align-items:stretch}.datebox input{width:140px}.selector{top:88px;grid-template-columns:repeat(3,1fr)}.sel{padding:9px 4px;font-size:12px}.meters{grid-template-columns:repeat(2,minmax(140px,1fr))}.meter input{height:58px;font-size:25px}.status{width:100%;margin-left:0}.app{padding:8px}}
 @media(max-width:520px){.brand h1{font-size:16px}.brand p{display:none}.selector{grid-template-columns:repeat(2,1fr)}.meters{grid-template-columns:1fr 1fr;gap:7px}.meter{padding:7px}.meter input{height:55px}.meter .name{font-size:12px}.meter .id{font-size:9px}.btn{padding:9px 10px}}
-.readonly-note{padding:9px 12px;background:#fff7e6;border:1px solid #f0c36a;border-radius:9px;color:#7a4b00;font-size:12px;font-weight:700;margin-bottom:10px}\n.basic-mode .master-only{display:none!important}\n</style>
+.readonly-note{padding:9px 12px;background:#fff7e6;border:1px solid #f0c36a;border-radius:9px;color:#7a4b00;font-size:12px;font-weight:700;margin-bottom:10px}\n.basic-mode .master-only{display:none!important}\n
+.resources{margin-top:12px}.resource-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.resource-tab{padding:9px 13px;border:1px solid var(--line);border-radius:9px;background:#f5f8fb;font-weight:800;color:#24384b}
+.resource-tab.active{background:var(--dark);color:#fff}
+.resource-box{border:1px solid var(--line);border-radius:10px;background:#fbfcfe;padding:12px;margin-top:10px}
+.resource-box textarea{width:100%;min-height:150px;border:1px solid #bcc9d6;border-radius:9px;padding:10px;resize:vertical;font:14px/1.45 Arial,sans-serif}
+.resource-box input[type=text]{width:100%;padding:10px;border:1px solid #bcc9d6;border-radius:9px}
+.resource-list{margin-top:12px;display:grid;gap:9px}
+.resource-item{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px}
+.resource-item .rtitle{font-weight:800}.resource-item .rmeta{font-size:11px;color:var(--muted);margin-top:4px}
+.resource-item pre{white-space:pre-wrap;word-break:break-word;margin:8px 0 0;font:13px/1.45 Consolas,monospace;background:#f4f7fa;padding:9px;border-radius:7px}
+.resource-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.resource-actions button,.resource-actions a{font-size:12px;padding:7px 10px}
+.resource-note{font-size:12px;color:var(--muted);margin-top:8px}
+</style>
 </head>
 <body>
 <div id="cloudBar" style="position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #d4dde7;padding:8px 14px">
@@ -89,7 +102,7 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
     <button class="sel ag" data-group="a_gwr" onclick="selectGroup('a_gwr')">A Wing GWR<small>7 meters</small></button>
     <button class="sel b" data-group="b_lwr" onclick="selectGroup('b_lwr')">B Wing LWR<small>8 meters</small></button>
     <button class="sel bg" data-group="b_gwr" onclick="selectGroup('b_gwr')">B Wing GWR<small>7 meters</small></button>
-    <button class="sel all" data-group="all" onclick="selectGroup('all')">All meters<small>Excel view</small></button>
+    <button class="sel all" data-group="all" onclick="selectGroup('all')">All meters<small>Excel view</small></button><button class="sel all" data-group="resources" onclick="openResources()">📝 Notes & Files<small>Shared documents</small></button>
   </nav>
 
   <section id="entryPanel" class="panel">
@@ -106,6 +119,34 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
   </section>
 
   <section id="allPanel" class="panel allview"><div class="panelhead"><h2>All meters / Excel layout</h2><span>31 meters • Excel order preserved for direct paste</span></div><div class="scroll"><table class="alltable"><thead id="allHead"></thead><tbody id="allBody"></tbody></table></div></section>
+  <section id="resourcePanel" class="panel resources" style="display:none">
+    <div class="panelhead"><h2>📝 Notes & Files</h2><span id="resourceAppLabel">Shared App ID</span></div>
+    <div class="resource-note">Shared through the same Supabase setup and Shared App ID as this meter app. Use the same App ID on the phone and PC.</div>
+    <div class="resource-tabs">
+      <button id="notesTab" class="resource-tab active" onclick="showResourceTab('notes')">📝 Notes</button>
+      <button id="filesTab" class="resource-tab" onclick="showResourceTab('files')">📁 Files</button>
+    </div>
+    <div id="notesResource">
+      <div class="resource-box">
+        <input id="noteEditId" type="hidden">
+        <label style="font-weight:800;font-size:13px">Note title</label>
+        <input id="noteTitle" type="text" placeholder="Example: Water meter instructions / code">
+        <label style="font-weight:800;font-size:13px;display:block;margin-top:9px">Note / pasted code</label>
+        <textarea id="noteBody" placeholder="Paste code, instructions, links or other text here..."></textarea>
+        <div class="resource-actions"><button class="btn primary" onclick="saveSharedNote()">Save note</button><button class="btn" onclick="clearNoteForm()">New note</button><button class="btn" onclick="loadSharedNotes()">Refresh notes</button></div>
+      </div>
+      <div id="notesList" class="resource-list"></div>
+    </div>
+    <div id="filesResource" style="display:none">
+      <div class="resource-box">
+        <label style="font-weight:800;font-size:13px">Upload image / PDF / Excel / document / other file</label>
+        <input id="sharedFileInput" type="file" style="display:block;margin-top:8px;width:100%">
+        <div class="resource-actions"><button class="btn primary" onclick="uploadSharedFile()">Upload file</button><button class="btn" onclick="loadSharedFiles()">Refresh files</button></div>
+        <div class="resource-note">Recommended maximum: 50 MB per file.</div>
+      </div>
+      <div id="filesList" class="resource-list"></div>
+    </div>
+  </section>
   <details id="excelSourcePanel" style="margin:12px 0">
   <summary style="cursor:pointer;font-weight:800;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:9px">
     Excel / Power Query — All 31 meters
@@ -119,174 +160,8 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
   </div>
 </details>
 <div class="foot">31 meters total: A Wing LWR 9, A Wing GWR 7, B Wing LWR 8, B Wing GWR 7. Use <b>Copy full Excel row</b> to copy the complete daily row in the same order as the Excel sheet. Use Backup regularly.</div>
-
-<section id="secretFilesPanel" class="panel" style="display:none">
-  <div class="panelhead">
-    <h2>🔐 Files Vault</h2>
-    <span>Private files — Master only</span>
-  </div>
-  <div style="padding:12px">
-    <p style="margin-top:0">Upload and access files stored in the Supabase <b>meter-files</b> bucket.</p>
-    <input id="vaultFileInput" type="file" multiple
-      style="display:block;margin:10px 0;padding:8px">
-    <button class="btn primary" onclick="uploadVaultFiles()">Upload files</button>
-    <button class="btn" onclick="listVaultFiles()">Refresh files</button>
-    <div id="vaultStatus" class="status" style="margin-top:10px"></div>
-    <div id="vaultList" style="margin-top:12px"></div>
-  </div>
-</section>
-
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-/* ===== Secret Files Vault: OPENVAULT ===== */
-const VAULT_BUCKET = 'meter-files';
-const VAULT_UNLOCK_KEY = 'waterMeterVaultUnlocked_v1';
-
-function vaultIsUnlocked(){
-  return localStorage.getItem(VAULT_UNLOCK_KEY)==='1';
-}
-
-function showVaultButton(){
-  let btn=document.getElementById('secretVaultButton');
-  if(!btn){
-    btn=document.createElement('button');
-    btn.id='secretVaultButton';
-    btn.className='btn master-only';
-    btn.textContent='📁 Files';
-    btn.onclick=()=>openVault();
-    const toolbar=document.querySelector('.toolbar');
-    if(toolbar) toolbar.insertBefore(btn, toolbar.querySelector('#status'));
-  }
-  btn.style.display=(role==='master' && vaultIsUnlocked())?'':'none';
-}
-
-function openVault(){
-  if(role!=='master' || !vaultIsUnlocked()){
-    alert('Files Vault is not available.');
-    return;
-  }
-  const p=document.getElementById('secretFilesPanel');
-  if(!p) return;
-  p.style.display='block';
-  p.scrollIntoView({behavior:'smooth',block:'start'});
-  listVaultFiles();
-}
-
-async function uploadVaultFiles(){
-  if(role!=='master' || !vaultIsUnlocked()){
-    alert('Master access required.');
-    return;
-  }
-  if(!sb?.url || !sb?.key){
-    alert('Shared Sync / Supabase setup is not configured on this device.');
-    return;
-  }
-
-  const input=document.getElementById('vaultFileInput');
-  const files=input?.files;
-  if(!files || !files.length){
-    alert('Select at least one file.');
-    return;
-  }
-
-  const status=document.getElementById('vaultStatus');
-  status.textContent='Uploading…';
-
-  try{
-    for(const file of files){
-      const safeName=file.name.replace(/[^\w.\- ()]/g,'_');
-      const path='vault/'+encodeURIComponent(safeName);
-
-      const res=await fetch(
-        sb.url+'/storage/v1/object/'+VAULT_BUCKET+'/'+path,
-        {
-          method:'POST',
-          headers:{
-            apikey:sb.key,
-            Authorization:'Bearer '+sb.key,
-            'Content-Type':file.type||'application/octet-stream',
-            'x-upsert':'true'
-          },
-          body:file
-        }
-      );
-
-      const text=await res.text();
-      if(!res.ok) throw new Error(text||('HTTP '+res.status));
-    }
-
-    status.textContent='Upload complete.';
-    input.value='';
-    await listVaultFiles();
-  }catch(e){
-    console.error(e);
-    status.textContent='Upload failed.';
-    alert('File upload failed:\n\n'+e.message);
-  }
-}
-
-async function listVaultFiles(){
-  if(!sb?.url || !sb?.key) return;
-
-  const box=document.getElementById('vaultList');
-  if(!box) return;
-  box.textContent='Loading…';
-
-  try{
-    const res=await fetch(
-      sb.url+'/storage/v1/object/list/'+VAULT_BUCKET,
-      {
-        method:'POST',
-        headers:{
-          apikey:sb.key,
-          Authorization:'Bearer '+sb.key,
-          'Content-Type':'application/json'
-        },
-        body:JSON.stringify({prefix:'vault/',limit:100,offset:0,sortBy:{column:'name',order:'asc'}})
-      }
-    );
-    const data=await res.json();
-    if(!res.ok) throw new Error(data?.message||data?.error||JSON.stringify(data));
-
-    const files=(Array.isArray(data)?data:[]).filter(x=>x.name && x.name!=='');
-    if(!files.length){
-      box.textContent='No files uploaded yet.';
-      return;
-    }
-
-    box.innerHTML=files.map(f=>{
-      const name=String(f.name);
-      const path='vault/'+encodeURIComponent(name);
-      const url=sb.url+'/storage/v1/object/public/'+VAULT_BUCKET+'/'+path;
-      return '<div style="padding:9px 0;border-bottom:1px solid var(--line)">'+
-        '<b>'+escapeHtml(name)+'</b> '+
-        '<a href="'+url+'" target="_blank" rel="noopener">Open / Download</a>'+
-      '</div>';
-    }).join('');
-  }catch(e){
-    console.error(e);
-    box.textContent='Could not load files.';
-  }
-}
-
-function checkOpenVaultNote(value){
-  if(String(value||'').trim().toLowerCase()==='openvault'){
-    if(role!=='master'){
-      alert('Master access required.');
-      return false;
-    }
-    localStorage.setItem(VAULT_UNLOCK_KEY,'1');
-    showVaultButton();
-    setStatus('Files Vault unlocked');
-    alert('Files option unlocked.');
-    return true;
-  }
-  return false;
-}
-
-showVaultButton();
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const KEY='waterMeterReadings_v1';
 const LEGACY_READING_KEYS=[
@@ -382,16 +257,16 @@ function load(){
   return [];
 }
 async function save(waitForCloud=false){
-  const d=document.getElementById('entryDate')?.value;
-  if(d) touchLocalDate(d);
   localStorage.setItem(KEY,JSON.stringify(rows));
   renderExcelSource();
-  setStatus('Saved locally • syncing…');
-  if(!cloudReady || !d) return false;
+  setStatus(waitForCloud ? 'Saved locally • syncing…' : 'Saved locally • syncing…');
+  if(!cloudReady) return false;
+  const d=document.getElementById('entryDate')?.value;
+  if(!d) return false;
   const promise=cloudUpsert(ensureDateNoSave(d));
   if(waitForCloud){
     const ok=await promise;
-    if(ok){setStatus('Saved to phone + cloud • verified');}
+    if(ok){setStatus('Saved to phone + cloud');}
     return ok;
   }
   promise.catch(err=>{
@@ -405,12 +280,7 @@ function ensureDateNoSave(d){let r=rows.find(x=>x.date===d);if(!r){r=blank(d);ro
 
 function setStatus(s){document.getElementById('status').textContent=s}
 const CLOUD_CONFIG_KEY='water-meter-shared-cloud-v2';
-const SYNC_META_KEY='waterMeterSyncMeta_v1';
 let sb=null, cloudReady=false, sharedAppId='';
-function getSyncMeta(){try{return JSON.parse(localStorage.getItem(SYNC_META_KEY)||'{}')}catch(e){return {}}}
-function setSyncMeta(m){localStorage.setItem(SYNC_META_KEY,JSON.stringify(m))}
-function touchLocalDate(d){if(!d)return;const m=getSyncMeta();m[d]=new Date().toISOString();setSyncMeta(m)}
-function clearSyncMeta(){localStorage.removeItem(SYNC_META_KEY)}
 
 const CLOUD_SQL=`create table if not exists public.meter_shared (
   app_id text not null,
@@ -434,11 +304,43 @@ drop policy if exists "public update meter data" on public.meter_shared;
 create policy "public update meter data"
 on public.meter_shared for update to anon using (true) with check (true);
 
-drop policy if exists "public delete meter data" on public.meter_shared;
-create policy "public delete meter data"
-on public.meter_shared for delete to anon using (true);
-
-grant select, insert, update, delete on public.meter_shared to anon;`;
+grant select, insert, update on public.meter_shared to anon;`;
+const RESOURCE_SQL=`create table if not exists public.app_notes (
+  id bigint generated by default as identity primary key,
+  app_id text not null,
+  title text not null default 'Untitled note',
+  body text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create table if not exists public.app_files (
+  id bigint generated by default as identity primary key,
+  app_id text not null,
+  file_name text not null,
+  file_path text not null,
+  file_url text not null,
+  file_size bigint,
+  mime_type text,
+  created_at timestamptz not null default now()
+);
+alter table public.app_notes enable row level security;
+alter table public.app_files enable row level security;
+drop policy if exists "public read app notes" on public.app_notes;
+create policy "public read app notes" on public.app_notes for select to anon using (true);
+drop policy if exists "public insert app notes" on public.app_notes;
+create policy "public insert app notes" on public.app_notes for insert to anon with check (true);
+drop policy if exists "public update app notes" on public.app_notes;
+create policy "public update app notes" on public.app_notes for update to anon using (true) with check (true);
+drop policy if exists "public delete app notes" on public.app_notes;
+create policy "public delete app notes" on public.app_notes for delete to anon using (true);
+drop policy if exists "public read app files" on public.app_files;
+create policy "public read app files" on public.app_files for select to anon using (true);
+drop policy if exists "public insert app files" on public.app_files;
+create policy "public insert app files" on public.app_files for insert to anon with check (true);
+drop policy if exists "public delete app files" on public.app_files;
+create policy "public delete app files" on public.app_files for delete to anon using (true);
+grant select,insert,update,delete on public.app_notes to anon;
+grant select,insert,delete on public.app_files to anon;`;
 
 function getCloudConfig(){try{return JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY)||'null')}catch(e){return null}}
 function setCloudStatus(s,ok=false){const el=document.getElementById('cloudStatus');if(el){el.textContent=s;el.style.color=ok?'#087a55':'#657587'}}
@@ -448,7 +350,7 @@ function openCloudSetup(){
   document.getElementById('sbUrl').value=c.url||'';
   document.getElementById('sbKey').value=c.key||'';
   document.getElementById('sbAppId').value=c.appId||'';
-  document.getElementById('cloudSQL').textContent=CLOUD_SQL;
+  document.getElementById('cloudSQL').textContent=CLOUD_SQL+'\n\n--- Notes & Files SQL ---\n'+RESOURCE_SQL+'\n\n--- Storage ---\nCreate a PUBLIC Storage bucket named meter-files and add Storage SELECT/INSERT/DELETE policies for anon.';
   document.getElementById('cloudModal').style.display='block';
 }
 function closeCloudSetup(){document.getElementById('cloudModal').style.display='none'}
@@ -482,6 +384,7 @@ async function initCloud(){
     sharedAppId=c.appId;
     cloudReady=true;
     setCloudStatus('Shared sync ready',true);
+    const rl=document.getElementById('resourceAppLabel'); if(rl) rl.textContent='Shared App ID: '+sharedAppId;
     await cloudPull(true);
   }catch(e){cloudReady=false;setCloudStatus('Configuration error')}
 }
@@ -507,21 +410,36 @@ async function restFetch(path, options={}){
 async function cloudUpsert(r){
   if(!cloudReady||!sharedAppId||!r?.date)return false;
   try{
-    const meta=getSyncMeta();
-    const stamp=meta[r.date] || new Date().toISOString();
-    meta[r.date]=stamp; setSyncMeta(meta);
-    const payload={app_id:sharedAppId,date:r.date,data:r,updated_at:stamp};
+    const payload={app_id:sharedAppId,date:r.date,data:r,updated_at:new Date().toISOString()};
+
+    // Write the selected day to Supabase.
     await restFetch('meter_shared?on_conflict=app_id%2Cdate',{
       method:'POST',
-      headers:{'Prefer':'resolution=merge-duplicates,return=representation','Content-Type':'application/json'},
+      headers:{
+        'Prefer':'resolution=merge-duplicates,return=representation',
+        'Content-Type':'application/json'
+      },
       body:JSON.stringify(payload)
     });
-    const verify=await restFetch('meter_shared?select=app_id%2Cdate%2Cdata%2Cupdated_at&app_id=eq.'+
-      encodeURIComponent(sharedAppId)+'&date=eq.'+encodeURIComponent(r.date)+'&limit=1');
-    if(!Array.isArray(verify)||!verify.length) throw new Error('Supabase accepted the write but the saved row could not be read back.');
+
+    // Immediately read the exact same row back.
+    // We only report "cloud saved" after Supabase confirms the row exists.
+    const verify=await restFetch(
+      'meter_shared?select=app_id%2Cdate%2Cdata&app_id=eq.'+
+      encodeURIComponent(sharedAppId)+'&date=eq.'+encodeURIComponent(r.date)+'&limit=1'
+    );
+
+    if(!Array.isArray(verify) || !verify.length){
+      throw new Error('Supabase accepted the write but the saved row could not be read back.');
+    }
+
     const saved=verify[0];
-    if(saved.app_id!==sharedAppId||saved.date!==r.date) throw new Error('Cloud verification returned a different App ID or date.');
+    if(saved.app_id!==sharedAppId || saved.date!==r.date){
+      throw new Error('Cloud verification returned a different App ID or date.');
+    }
+
     setCloudStatus('Cloud OK • verified '+new Date().toLocaleTimeString(),true);
+    setStatus('Saved to phone + cloud • verified');
     return true;
   }catch(e){
     console.warn('Cloud save/verify:',e);
@@ -531,45 +449,23 @@ async function cloudUpsert(r){
   }
 }
 async function cloudPull(silent=false){
-  if(!cloudReady||!sharedAppId){if(!silent)openCloudSetup();return false}
+  if(!cloudReady||!sharedAppId){if(!silent)openCloudSetup();return}
   setCloudStatus('Syncing…');
   try{
-    const rowsRemote=await restFetch('meter_shared?select=date%2Cdata%2Cupdated_at&app_id=eq.'+
-      encodeURIComponent(sharedAppId)+'&order=date');
-    const remote=Array.isArray(rowsRemote)?rowsRemote.filter(x=>x&&x.data):[];
-    const localMeta=getSyncMeta();
+    const rowsRemote=await restFetch('meter_shared?select=date%2Cdata&app_id=eq.'+encodeURIComponent(sharedAppId)+'&order=date');
+    const remote=Array.isArray(rowsRemote)?rowsRemote.map(x=>x.data).filter(Boolean):[];
     const map=new Map(rows.map(r=>[r.date,r]));
-    const uploads=[];
-    let changed=false;
-
-    for(const item of remote){
-      const rr=item.data;
-      if(!rr?.date) continue;
-      const remoteTs=item.updated_at ? Date.parse(item.updated_at) : 0;
-      const localTs=localMeta[rr.date] ? Date.parse(localMeta[rr.date]) : 0;
-      if(!map.has(rr.date) || remoteTs>=localTs){
-        map.set(rr.date,{...blank(rr.date),...rr});
-        if(item.updated_at) localMeta[rr.date]=item.updated_at;
-        changed=true;
-      }else if(localTs>remoteTs){
-        uploads.push(map.get(rr.date));
-      }
-    }
-
+    remote.forEach(rr=>{if(rr.date)map.set(rr.date,{...blank(rr.date),...rr})});
     rows=Array.from(map.values());sort();
     localStorage.setItem(KEY,JSON.stringify(rows));
-    setSyncMeta(localMeta);
     renderEntry();if(group==='all')renderAll();renderExcelSource();
-
-    // If this device has a newer local edit, push that date back to the cloud.
-    for(const r of uploads) await cloudUpsert(r);
-
     setCloudStatus('Cloud OK • '+rows.length+' day(s) synced',true);
     return true;
   }catch(e){
     console.warn('Cloud refresh:',e);
     setCloudStatus('Cloud error');
-    if(!silent)alert('Cloud refresh failed. Your local readings are still available.\n\n'+e.message);
+    if(!silent)alert('Cloud refresh failed. Your local readings are still available.\n\n'+e.message+
+      '\n\nIf the phone works, this PC likely has stale site data. Use Setup → Reset setup, then enter the exact same values again.');
     return false;
   }
 }
@@ -577,15 +473,11 @@ async function cloudPushAll(){
   if(!cloudReady||!sharedAppId){openCloudSetup();return}
   if(!rows.length){alert('No local readings to upload.');return}
   try{
-    const meta=getSyncMeta();
-    const now=new Date().toISOString();
-    const payload=rows.map(r=>{
-      if(!meta[r.date]) meta[r.date]=now;
-      return {app_id:sharedAppId,date:r.date,data:r,updated_at:meta[r.date]};
-    });
-    setSyncMeta(meta);
+    const payload=rows.map(r=>({app_id:sharedAppId,date:r.date,data:r,updated_at:new Date().toISOString()}));
     await restFetch('meter_shared?on_conflict=app_id%2Cdate',{
-      method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'},body:JSON.stringify(payload)
+      method:'POST',
+      headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify(payload)
     });
     setCloudStatus('Uploaded '+rows.length+' day(s)',true);
   }catch(e){alert('Cloud upload failed:\n\n'+e.message)}
@@ -606,10 +498,110 @@ async function cloudTest(){
   }
 }
 
+
+let resourceTab='notes';
+function openResources(){
+  group='resources';
+  document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group==='resources'));
+  document.getElementById('entryPanel').style.display='none';
+  document.getElementById('allPanel').style.display='none';
+  document.getElementById('resourcePanel').style.display='block';
+  document.getElementById('resourceAppLabel').textContent='Shared App ID: '+(sharedAppId||'not configured');
+  showResourceTab(resourceTab);
+}
+function showResourceTab(tab){
+  resourceTab=tab;
+  document.getElementById('notesResource').style.display=tab==='notes'?'block':'none';
+  document.getElementById('filesResource').style.display=tab==='files'?'block':'none';
+  document.getElementById('notesTab').classList.toggle('active',tab==='notes');
+  document.getElementById('filesTab').classList.toggle('active',tab==='files');
+  if(tab==='notes')loadSharedNotes(); else loadSharedFiles();
+}
+function requireCloudForResources(){
+  if(!cloudReady||!sharedAppId){alert('Shared Sync is not configured. Open Setup and enter the same Supabase URL, Publishable key and Shared App ID used by the phone.');return false}
+  return true;
+}
+async function loadSharedNotes(){
+  if(!requireCloudForResources())return;
+  const box=document.getElementById('notesList');box.innerHTML='<div class="resource-item">Loading notes…</div>';
+  try{
+    const data=await restFetch('app_notes?select=id%2Ctitle%2Cbody%2Ccreated_at%2Cupdated_at&app_id=eq.'+encodeURIComponent(sharedAppId)+'&order=updated_at.desc');
+    box.innerHTML='';
+    if(!data.length){box.innerHTML='<div class="resource-item"><span class="rmeta">No shared notes saved yet.</span></div>';return}
+    data.forEach(n=>{
+      const item=document.createElement('div');item.className='resource-item';
+      const title=document.createElement('div');title.className='rtitle';title.textContent=n.title||'Untitled note';
+      const meta=document.createElement('div');meta.className='rmeta';meta.textContent='Updated: '+(n.updated_at?new Date(n.updated_at).toLocaleString():'');
+      const pre=document.createElement('pre');pre.textContent=n.body||'';
+      const actions=document.createElement('div');actions.className='resource-actions';
+      const edit=document.createElement('button');edit.className='btn';edit.textContent='Edit';edit.onclick=()=>{document.getElementById('noteEditId').value=n.id;document.getElementById('noteTitle').value=n.title||'';document.getElementById('noteBody').value=n.body||'';};
+      const del=document.createElement('button');del.className='btn danger';del.textContent='Delete';del.onclick=()=>deleteSharedNote(n.id);
+      actions.append(edit,del);item.append(title,meta,pre,actions);box.appendChild(item);
+    });
+  }catch(e){box.innerHTML='<div class="resource-item"><span class="rmeta">Could not load notes: '+escapeHtml(e.message)+'</span></div>'}
+}
+async function saveSharedNote(){
+  if(!requireCloudForResources())return;
+  const title=document.getElementById('noteTitle').value.trim()||'Untitled note', body=document.getElementById('noteBody').value, id=document.getElementById('noteEditId').value;
+  if(!body.trim()){alert('Please enter note text or paste the code first.');return}
+  try{
+    if(id) await restFetch('app_notes?id=eq.'+encodeURIComponent(id)+'&app_id=eq.'+encodeURIComponent(sharedAppId),{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({title,body,updated_at:new Date().toISOString()})});
+    else await restFetch('app_notes',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({app_id:sharedAppId,title,body})});
+    clearNoteForm();await loadSharedNotes();setStatus(id?'Shared note updated':'Shared note saved');
+  }catch(e){alert('Could not save note:\n\n'+e.message)}
+}
+async function deleteSharedNote(id){
+  if(role!=='master'){alert('Master access required to delete shared notes.');return}
+  if(!confirm('Delete this shared note?'))return;
+  try{await restFetch('app_notes?id=eq.'+encodeURIComponent(id)+'&app_id=eq.'+encodeURIComponent(sharedAppId),{method:'DELETE'});await loadSharedNotes();setStatus('Shared note deleted')}catch(e){alert('Could not delete note:\n\n'+e.message)}
+}
+function clearNoteForm(){document.getElementById('noteEditId').value='';document.getElementById('noteTitle').value='';document.getElementById('noteBody').value=''}
+async function uploadSharedFile(){
+  if(!requireCloudForResources())return;
+  const input=document.getElementById('sharedFileInput'),file=input.files[0];
+  if(!file){alert('Select a file first.');return}
+  if(file.size>50*1024*1024){alert('Please keep each file under 50 MB.');return}
+  const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=sharedAppId+'/'+Date.now()+'_'+safe;
+  try{
+    const res=await fetch(sb.url+'/storage/v1/object/meter-files/'+path,{method:'POST',headers:{'apikey':sb.key,'Authorization':'Bearer '+sb.key,'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},body:file});
+    const text=await res.text();if(!res.ok)throw new Error('Storage HTTP '+res.status+': '+text);
+    const publicUrl=sb.url+'/storage/v1/object/public/meter-files/'+path;
+    await restFetch('app_files',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({app_id:sharedAppId,file_name:file.name,file_path:path,file_url:publicUrl,file_size:file.size,mime_type:file.type||'application/octet-stream'})});
+    input.value='';await loadSharedFiles();setStatus('File uploaded and shared');
+  }catch(e){alert('File upload failed:\n\n'+e.message+'\n\nMake sure the Supabase Storage bucket "meter-files" exists and has the required policies.')}
+}
+async function loadSharedFiles(){
+  if(!requireCloudForResources())return;
+  const box=document.getElementById('filesList');box.innerHTML='<div class="resource-item">Loading files…</div>';
+  try{
+    const data=await restFetch('app_files?select=id%2Cfile_name%2Cfile_path%2Cfile_url%2Cfile_size%2Cmime_type%2Ccreated_at&app_id=eq.'+encodeURIComponent(sharedAppId)+'&order=created_at.desc');
+    box.innerHTML='';if(!data.length){box.innerHTML='<div class="resource-item"><span class="rmeta">No shared files uploaded yet.</span></div>';return}
+    data.forEach(f=>{
+      const item=document.createElement('div');item.className='resource-item';
+      const title=document.createElement('div');title.className='rtitle';title.textContent=f.file_name;
+      const meta=document.createElement('div');meta.className='rmeta';meta.textContent=(f.mime_type||'file')+' • '+formatResourceBytes(f.file_size)+' • '+(f.created_at?new Date(f.created_at).toLocaleString():'');
+      const actions=document.createElement('div');actions.className='resource-actions';
+      const a=document.createElement('a');a.className='btn';a.textContent='Download / Open';a.href=f.file_url;a.target='_blank';a.rel='noopener';actions.appendChild(a);
+      if(role==='master'){const del=document.createElement('button');del.className='btn danger';del.textContent='Delete';del.onclick=()=>deleteSharedFile(f.id,f.file_path);actions.appendChild(del)}
+      item.append(title,meta,actions);box.appendChild(item);
+    });
+  }catch(e){box.innerHTML='<div class="resource-item"><span class="rmeta">Could not load files: '+escapeHtml(e.message)+'</span></div>'}
+}
+function formatResourceBytes(n){if(!n)return'0 B';const u=['B','KB','MB','GB'];let i=0,x=n;while(x>=1024&&i<u.length-1){x/=1024;i++}return x.toFixed(i?1:0)+' '+u[i]}
+async function deleteSharedFile(id,path){
+  if(role!=='master'){alert('Master access required to delete shared files.');return}
+  if(!confirm('Delete this shared file?'))return;
+  try{
+    const r=await fetch(sb.url+'/storage/v1/object/meter-files/'+path,{method:'DELETE',headers:{'apikey':sb.key,'Authorization':'Bearer '+sb.key}});
+    if(!r.ok){const t=await r.text();throw new Error('Storage HTTP '+r.status+': '+t)}
+    await restFetch('app_files?id=eq.'+encodeURIComponent(id)+'&app_id=eq.'+encodeURIComponent(sharedAppId),{method:'DELETE'});
+    await loadSharedFiles();setStatus('Shared file deleted');
+  }catch(e){alert('Could not delete file:\n\n'+e.message)}
+}
 function today(){const d=new Date();return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 function ensureDate(d){let r=rows.find(x=>x.date===d);if(!r){r=blank(d);rows.push(r);sort();localStorage.setItem(KEY,JSON.stringify(rows));}return r}
 function sort(){rows.sort((a,b)=>(a.date||'9999-99-99').localeCompare(b.date||'9999-99-99'))}
-function selectGroup(g){group=g;document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group===g));document.getElementById('entryPanel').style.display=g==='all'?'none':'block';document.getElementById('allPanel').style.display=g==='all'?'block':'none';if(g==='all')renderAll();else renderEntry();renderExcelSource()}
+function selectGroup(g){group=g;document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group===g));document.getElementById('resourcePanel').style.display='none';document.getElementById('entryPanel').style.display=g==='all'?'none':'block';document.getElementById('allPanel').style.display=g==='all'?'block':'none';if(g==='all')renderAll();else renderEntry();renderExcelSource()}
 function renderEntry(){
   const d=document.getElementById('entryDate').value||today();
   document.getElementById('entryDate').value=d;
@@ -733,53 +725,8 @@ function renderAll(){
 function groupClass(k){if(k.startsWith('a_lwr')||k==='cafe'||k==='ac_point')return'groupA';if(k.startsWith('a_gwr'))return'groupAG';if(k.startsWith('b_lwr'))return'groupB';if(k.startsWith('b_gwr'))return'groupBG';return''}
 function exportBackup(){const blob=new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),rows},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='water-meter-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);setStatus('Backup downloaded')}
 function restoreBackup(e){if(role!=='master'){alert('Master access required.');e.target.value='';return}const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!Array.isArray(o.rows))throw 0;rows=o.rows.map(old=>{const r=blank(old.date||'');allKeys.forEach(k=>r[k]=old[k]??'');return r});sort();save();renderEntry();setStatus('Backup restored')}catch(err){alert('Invalid backup file.')}};rd.readAsText(f);e.target.value=''}
-async function clearAll(){
-  if(role!=='master'){alert('Master access required.');return}
-  if(!confirm('Delete ALL saved readings from this device AND the shared Supabase cloud for this App ID? This affects every synced device.'))return;
-  try{
-    if(cloudReady&&sharedAppId){
-      setCloudStatus('Deleting shared cloud data…');
-      await restFetch('meter_shared?app_id=eq.'+encodeURIComponent(sharedAppId),{method:'DELETE',headers:{'Prefer':'return=minimal'}});
-      const verify=await restFetch('meter_shared?select=date&app_id=eq.'+encodeURIComponent(sharedAppId)+'&limit=1');
-      if(Array.isArray(verify)&&verify.length) throw new Error('Cloud rows still remain. Check the Supabase DELETE policy/permission.');
-    }
-    rows=[];
-    localStorage.removeItem(KEY);
-    clearSyncMeta();
-    ensureDate(today());
-    renderEntry();renderExcelSource();if(group==='all')renderAll();
-    setCloudStatus(cloudReady?'Cloud empty • 0 day(s)':'Not configured',true);
-    setStatus('All readings cleared from device + cloud');
-  }catch(e){
-    console.error('Clear all failed:',e);
-    alert('Clear all failed.\n\n'+e.message+'\n\nYour local readings were not deleted.');
-    setCloudStatus('Cloud delete failed');
-  }
-}
+function clearAll(){if(role!=='master'){alert('Master access required.');return}if(!confirm('Delete ALL saved readings from this browser?'))return;rows=[];localStorage.removeItem(KEY);renderEntry();setStatus('All readings cleared')}
 document.getElementById('entryDate').value=today();document.getElementById('entryDate').addEventListener('change',renderEntry);updateRoleUI();renderEntry();renderExcelSource();initCloud();
 </script>
-
-<script>
-(function(){
-  function bindOpenVault(){
-    document.querySelectorAll('textarea,input[type="text"]').forEach(function(el){
-      if(el.dataset.openvaultBound) return;
-      el.dataset.openvaultBound='1';
-      el.addEventListener('change',function(){
-        if(typeof checkOpenVaultNote==='function') checkOpenVaultNote(el.value);
-      });
-      el.addEventListener('keydown',function(e){
-        if(e.key==='Enter'){
-          if(typeof checkOpenVaultNote==='function') checkOpenVaultNote(el.value);
-        }
-      });
-    });
-  }
-  bindOpenVault();
-  const obs=new MutationObserver(bindOpenVault);
-  obs.observe(document.body,{childList:true,subtree:true});
-})();
-</script>
-
 </body>
 </html>
