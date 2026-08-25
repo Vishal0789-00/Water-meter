@@ -119,8 +119,174 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
   </div>
 </details>
 <div class="foot">31 meters total: A Wing LWR 9, A Wing GWR 7, B Wing LWR 8, B Wing GWR 7. Use <b>Copy full Excel row</b> to copy the complete daily row in the same order as the Excel sheet. Use Backup regularly.</div>
+
+<section id="secretFilesPanel" class="panel" style="display:none">
+  <div class="panelhead">
+    <h2>🔐 Files Vault</h2>
+    <span>Private files — Master only</span>
+  </div>
+  <div style="padding:12px">
+    <p style="margin-top:0">Upload and access files stored in the Supabase <b>meter-files</b> bucket.</p>
+    <input id="vaultFileInput" type="file" multiple
+      style="display:block;margin:10px 0;padding:8px">
+    <button class="btn primary" onclick="uploadVaultFiles()">Upload files</button>
+    <button class="btn" onclick="listVaultFiles()">Refresh files</button>
+    <div id="vaultStatus" class="status" style="margin-top:10px"></div>
+    <div id="vaultList" style="margin-top:12px"></div>
+  </div>
+</section>
+
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+/* ===== Secret Files Vault: OPENVAULT ===== */
+const VAULT_BUCKET = 'meter-files';
+const VAULT_UNLOCK_KEY = 'waterMeterVaultUnlocked_v1';
+
+function vaultIsUnlocked(){
+  return localStorage.getItem(VAULT_UNLOCK_KEY)==='1';
+}
+
+function showVaultButton(){
+  let btn=document.getElementById('secretVaultButton');
+  if(!btn){
+    btn=document.createElement('button');
+    btn.id='secretVaultButton';
+    btn.className='btn master-only';
+    btn.textContent='📁 Files';
+    btn.onclick=()=>openVault();
+    const toolbar=document.querySelector('.toolbar');
+    if(toolbar) toolbar.insertBefore(btn, toolbar.querySelector('#status'));
+  }
+  btn.style.display=(role==='master' && vaultIsUnlocked())?'':'none';
+}
+
+function openVault(){
+  if(role!=='master' || !vaultIsUnlocked()){
+    alert('Files Vault is not available.');
+    return;
+  }
+  const p=document.getElementById('secretFilesPanel');
+  if(!p) return;
+  p.style.display='block';
+  p.scrollIntoView({behavior:'smooth',block:'start'});
+  listVaultFiles();
+}
+
+async function uploadVaultFiles(){
+  if(role!=='master' || !vaultIsUnlocked()){
+    alert('Master access required.');
+    return;
+  }
+  if(!sb?.url || !sb?.key){
+    alert('Shared Sync / Supabase setup is not configured on this device.');
+    return;
+  }
+
+  const input=document.getElementById('vaultFileInput');
+  const files=input?.files;
+  if(!files || !files.length){
+    alert('Select at least one file.');
+    return;
+  }
+
+  const status=document.getElementById('vaultStatus');
+  status.textContent='Uploading…';
+
+  try{
+    for(const file of files){
+      const safeName=file.name.replace(/[^\w.\- ()]/g,'_');
+      const path='vault/'+encodeURIComponent(safeName);
+
+      const res=await fetch(
+        sb.url+'/storage/v1/object/'+VAULT_BUCKET+'/'+path,
+        {
+          method:'POST',
+          headers:{
+            apikey:sb.key,
+            Authorization:'Bearer '+sb.key,
+            'Content-Type':file.type||'application/octet-stream',
+            'x-upsert':'true'
+          },
+          body:file
+        }
+      );
+
+      const text=await res.text();
+      if(!res.ok) throw new Error(text||('HTTP '+res.status));
+    }
+
+    status.textContent='Upload complete.';
+    input.value='';
+    await listVaultFiles();
+  }catch(e){
+    console.error(e);
+    status.textContent='Upload failed.';
+    alert('File upload failed:\n\n'+e.message);
+  }
+}
+
+async function listVaultFiles(){
+  if(!sb?.url || !sb?.key) return;
+
+  const box=document.getElementById('vaultList');
+  if(!box) return;
+  box.textContent='Loading…';
+
+  try{
+    const res=await fetch(
+      sb.url+'/storage/v1/object/list/'+VAULT_BUCKET,
+      {
+        method:'POST',
+        headers:{
+          apikey:sb.key,
+          Authorization:'Bearer '+sb.key,
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({prefix:'vault/',limit:100,offset:0,sortBy:{column:'name',order:'asc'}})
+      }
+    );
+    const data=await res.json();
+    if(!res.ok) throw new Error(data?.message||data?.error||JSON.stringify(data));
+
+    const files=(Array.isArray(data)?data:[]).filter(x=>x.name && x.name!=='');
+    if(!files.length){
+      box.textContent='No files uploaded yet.';
+      return;
+    }
+
+    box.innerHTML=files.map(f=>{
+      const name=String(f.name);
+      const path='vault/'+encodeURIComponent(name);
+      const url=sb.url+'/storage/v1/object/public/'+VAULT_BUCKET+'/'+path;
+      return '<div style="padding:9px 0;border-bottom:1px solid var(--line)">'+
+        '<b>'+escapeHtml(name)+'</b> '+
+        '<a href="'+url+'" target="_blank" rel="noopener">Open / Download</a>'+
+      '</div>';
+    }).join('');
+  }catch(e){
+    console.error(e);
+    box.textContent='Could not load files.';
+  }
+}
+
+function checkOpenVaultNote(value){
+  if(String(value||'').trim().toLowerCase()==='openvault'){
+    if(role!=='master'){
+      alert('Master access required.');
+      return false;
+    }
+    localStorage.setItem(VAULT_UNLOCK_KEY,'1');
+    showVaultButton();
+    setStatus('Files Vault unlocked');
+    alert('Files option unlocked.');
+    return true;
+  }
+  return false;
+}
+
+showVaultButton();
+
+</script>
 <script>
 const KEY='waterMeterReadings_v1';
 const LEGACY_READING_KEYS=[
@@ -592,5 +758,28 @@ async function clearAll(){
 }
 document.getElementById('entryDate').value=today();document.getElementById('entryDate').addEventListener('change',renderEntry);updateRoleUI();renderEntry();renderExcelSource();initCloud();
 </script>
+
+<script>
+(function(){
+  function bindOpenVault(){
+    document.querySelectorAll('textarea,input[type="text"]').forEach(function(el){
+      if(el.dataset.openvaultBound) return;
+      el.dataset.openvaultBound='1';
+      el.addEventListener('change',function(){
+        if(typeof checkOpenVaultNote==='function') checkOpenVaultNote(el.value);
+      });
+      el.addEventListener('keydown',function(e){
+        if(e.key==='Enter'){
+          if(typeof checkOpenVaultNote==='function') checkOpenVaultNote(el.value);
+        }
+      });
+    });
+  }
+  bindOpenVault();
+  const obs=new MutationObserver(bindOpenVault);
+  obs.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
 </body>
 </html>
