@@ -41,6 +41,33 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
 .resource-item pre{white-space:pre-wrap;word-break:break-word;margin:8px 0 0;font:13px/1.45 Consolas,monospace;background:#f4f7fa;padding:9px;border-radius:7px}
 .resource-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.resource-actions button,.resource-actions a{font-size:12px;padding:7px 10px}
 .resource-note{font-size:12px;color:var(--muted);margin-top:8px}
+
+/* --- Snag Management --- */
+.snag-panel{margin-top:12px}
+.snag-form{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:10px}
+.snag-form label{font-size:12px;font-weight:800;color:#24384b}
+.snag-form input,.snag-form select,.snag-form textarea{width:100%;margin-top:5px;padding:10px;border:1px solid #bcc9d6;border-radius:9px;background:#fff}
+.snag-form textarea{min-height:90px;resize:vertical}
+.snag-form .full{grid-column:1/-1}
+.snag-photo{border:2px dashed #bcc9d6;border-radius:10px;padding:12px;background:#f8fafc}
+.snag-preview{max-width:180px;max-height:180px;border-radius:8px;margin-top:8px;display:none}
+.snag-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.snag-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:9px;margin-top:12px}
+.snag-table{border-collapse:collapse;width:100%;min-width:850px;font-size:12px}
+.snag-table th,.snag-table td{border-bottom:1px solid var(--line);padding:7px 8px;white-space:nowrap;text-align:left;vertical-align:middle}
+.snag-table th{background:#f4f7fa;position:sticky;top:0}
+.snag-thumb{width:70px;height:55px;object-fit:cover;border-radius:6px;cursor:pointer}
+.snag-filter{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.snag-filter input,.snag-filter select{padding:8px;border:1px solid #bcc9d6;border-radius:8px}
+.snag-note{font-size:12px;color:var(--muted);margin-top:7px}
+@media(max-width:700px){.snag-form{grid-template-columns:1fr}.snag-form .full{grid-column:auto}}
+
+
+.wa-review-img{width:65px;height:50px;object-fit:cover;border-radius:6px}
+.wa-match-good{font-weight:800}
+.wa-match-warn{font-weight:800}
+.wa-edit{min-width:120px;padding:6px;border:1px solid #bcc9d6;border-radius:7px}
+
 </style>
 </head>
 <body>
@@ -102,7 +129,7 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
     <button class="sel ag" data-group="a_gwr" onclick="selectGroup('a_gwr')">A Wing GWR<small>7 meters</small></button>
     <button class="sel b" data-group="b_lwr" onclick="selectGroup('b_lwr')">B Wing LWR<small>8 meters</small></button>
     <button class="sel bg" data-group="b_gwr" onclick="selectGroup('b_gwr')">B Wing GWR<small>7 meters</small></button>
-    <button class="sel all" data-group="all" onclick="selectGroup('all')">All meters<small>Excel view</small></button><button class="sel all" data-group="resources" onclick="openResources()">📝 Notes & Files<small>Shared documents</small></button>
+    <button class="sel all" data-group="all" onclick="selectGroup('all')">All meters<small>Excel view</small></button><button class="sel all" data-group="resources" onclick="openResources()">📝 Notes & Files<small>Shared documents</small></button><button class="sel all" data-group="snags" onclick="openSnags()">🏗️ Snag Points<small>Photos + locations</small></button>
   </nav>
 
   <section id="entryPanel" class="panel">
@@ -147,6 +174,112 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
       <div id="filesList" class="resource-list"></div>
     </div>
   </section>
+
+<section id="snagPanel" class="panel snag-panel" style="display:none">
+  <div class="panelhead">
+    <h2>🏗️ Snag Points</h2>
+    <span id="snagCloudLabel">Shared snag register</span>
+  </div>
+
+  <div class="snag-form">
+    <div>
+      <label>Building / Wing
+        <select id="snagBuilding">
+          <option>A Wing</option><option>B Wing</option><option>Other</option>
+        </select>
+      </label>
+    </div>
+    <div>
+      <label>Floor
+        <input id="snagFloor" type="text" placeholder="3rd Floor">
+      </label>
+    </div>
+    <div>
+      <label>Location
+        <input id="snagLocation" type="text" placeholder="Flat 302 / Corridor / Toilet">
+      </label>
+    </div>
+    <div>
+      <label>Status
+        <select id="snagStatus"><option>Open</option><option>In Progress</option><option>Rectified</option></select>
+      </label>
+    </div>
+    <div class="full">
+      <label>Snag description
+        <textarea id="snagDescription" placeholder="Example: Tile damaged near entrance"></textarea>
+      </label>
+    </div>
+    <div class="full snag-photo">
+      <label>📷 Snag photo</label>
+      <input id="snagPhoto" type="file" accept="image/*" capture="environment">
+      <img id="snagPreview" class="snag-preview" alt="Selected snag preview">
+      <div class="snag-note">On a phone, this can open the camera. You can also choose an existing WhatsApp image from the gallery/files.</div>
+    </div>
+  </div>
+
+  <div class="snag-actions">
+    <button class="btn primary" onclick="saveSnag()">✓ Save Snag</button>
+    <button class="btn" onclick="clearSnagForm()">New / Clear</button>
+    <button class="btn green" onclick="exportSnagsCSV()">Export Snags CSV</button>
+    <button class="btn" onclick="copySnagsTSV()">Copy for Excel</button>
+  </div>
+
+
+  <div class="resource-box" style="margin-top:12px">
+    <div style="font-weight:800;font-size:14px">📥 WhatsApp Bulk Import</div>
+    <div class="snag-note">
+      Export the WhatsApp chat as a <b>.txt</b> file and select the WhatsApp media images below.
+      The importer looks for location text near each image message and creates a review list before saving.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:9px">
+      <div>
+        <label style="font-size:12px;font-weight:800">WhatsApp chat export (.txt)
+          <input id="waChatFile" type="file" accept=".txt,text/plain" style="display:block;width:100%;margin-top:5px">
+        </label>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:800">WhatsApp media images
+          <input id="waMediaFiles" type="file" accept="image/*" multiple style="display:block;width:100%;margin-top:5px">
+        </label>
+      </div>
+    </div>
+    <div class="snag-actions">
+      <button class="btn primary" onclick="prepareWhatsAppImport()">🔎 Match & Review</button>
+      <button class="btn green" onclick="importReviewedWhatsApp()">✓ Import Reviewed</button>
+      <button class="btn" onclick="clearWhatsAppImport()">Clear Import</button>
+    </div>
+    <div id="waImportSummary" class="snag-note"></div>
+    <div class="snag-table-wrap" id="waImportWrap" style="display:none">
+      <table class="snag-table">
+        <thead><tr>
+          <th>Import</th><th>Image</th><th>Building</th><th>Floor</th><th>Location</th><th>Description / nearby text</th><th>Match</th>
+        </tr></thead>
+        <tbody id="waImportBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="snag-filter">
+    <input id="snagSearch" type="text" placeholder="Search location / description" oninput="renderSnags()">
+    <select id="snagStatusFilter" onchange="renderSnags()">
+      <option value="">All status</option><option>Open</option><option>In Progress</option><option>Rectified</option>
+    </select>
+    <select id="snagBuildingFilter" onchange="renderSnags()">
+      <option value="">All buildings</option><option>A Wing</option><option>B Wing</option><option>Other</option>
+    </select>
+  </div>
+
+  <div class="snag-table-wrap">
+    <table class="snag-table">
+      <thead><tr>
+        <th>Snag ID</th><th>Date / Time</th><th>Building</th><th>Floor</th><th>Location</th>
+        <th>Image</th><th>Description</th><th>Status</th><th>Action</th>
+      </tr></thead>
+      <tbody id="snagBody"></tbody>
+    </table>
+  </div>
+</section>
+
   <details id="excelSourcePanel" style="margin:12px 0">
   <summary style="cursor:pointer;font-weight:800;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:9px">
     Excel / Power Query — All 31 meters
@@ -305,6 +438,22 @@ create policy "public update meter data"
 on public.meter_shared for update to anon using (true) with check (true);
 
 grant select, insert, update on public.meter_shared to anon;`;
+const SNAG_SQL=`create table if not exists public.snag_shared (
+  app_id text not null,
+  snag_id text not null,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  primary key (app_id, snag_id)
+);
+alter table public.snag_shared enable row level security;
+drop policy if exists "public read snags" on public.snag_shared;
+create policy "public read snags" on public.snag_shared for select to anon using (true);
+drop policy if exists "public insert snags" on public.snag_shared;
+create policy "public insert snags" on public.snag_shared for insert to anon with check (true);
+drop policy if exists "public update snags" on public.snag_shared;
+create policy "public update snags" on public.snag_shared for update to anon using (true) with check (true);
+grant select,insert,update on public.snag_shared to anon;`;
+
 const RESOURCE_SQL=`create table if not exists public.app_notes (
   id bigint generated by default as identity primary key,
   app_id text not null,
@@ -350,7 +499,7 @@ function openCloudSetup(){
   document.getElementById('sbUrl').value=c.url||'';
   document.getElementById('sbKey').value=c.key||'';
   document.getElementById('sbAppId').value=c.appId||'';
-  document.getElementById('cloudSQL').textContent=CLOUD_SQL+'\n\n--- Notes & Files SQL ---\n'+RESOURCE_SQL+'\n\n--- Storage ---\nCreate a PUBLIC Storage bucket named meter-files and add Storage SELECT/INSERT/DELETE policies for anon.';
+  document.getElementById('cloudSQL').textContent=CLOUD_SQL+'\n\n--- Snag Points SQL ---\n'+SNAG_SQL+'\n\n--- Notes & Files SQL ---\n'+RESOURCE_SQL+'\n\n--- Storage ---\nCreate a PUBLIC Storage bucket named meter-files and add Storage SELECT/INSERT/DELETE policies for anon.';
   document.getElementById('cloudModal').style.display='block';
 }
 function closeCloudSetup(){document.getElementById('cloudModal').style.display='none'}
@@ -385,7 +534,7 @@ async function initCloud(){
     cloudReady=true;
     setCloudStatus('Shared sync ready',true);
     const rl=document.getElementById('resourceAppLabel'); if(rl) rl.textContent='Shared App ID: '+sharedAppId;
-    await cloudPull(true);
+    await cloudPull(true);\n    await cloudPullSnags();
   }catch(e){cloudReady=false;setCloudStatus('Configuration error')}
 }
 async function restFetch(path, options={}){
@@ -601,7 +750,7 @@ async function deleteSharedFile(id,path){
 function today(){const d=new Date();return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 function ensureDate(d){let r=rows.find(x=>x.date===d);if(!r){r=blank(d);rows.push(r);sort();localStorage.setItem(KEY,JSON.stringify(rows));}return r}
 function sort(){rows.sort((a,b)=>(a.date||'9999-99-99').localeCompare(b.date||'9999-99-99'))}
-function selectGroup(g){group=g;document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group===g));document.getElementById('resourcePanel').style.display='none';document.getElementById('entryPanel').style.display=g==='all'?'none':'block';document.getElementById('allPanel').style.display=g==='all'?'block':'none';if(g==='all')renderAll();else renderEntry();renderExcelSource()}
+function selectGroup(g){group=g;document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group===g));document.getElementById('resourcePanel').style.display='none';document.getElementById('snagPanel').style.display='none';document.getElementById('entryPanel').style.display=g==='all'?'none':'block';document.getElementById('allPanel').style.display=g==='all'?'block':'none';if(g==='all')renderAll();else renderEntry();renderExcelSource()}
 function renderEntry(){
   const d=document.getElementById('entryDate').value||today();
   document.getElementById('entryDate').value=d;
@@ -644,6 +793,308 @@ async function saveCurrent(){
   }
 }
 function newToday(){
+
+
+/* ================= WhatsApp Bulk Import ================= */
+let waReview=[];
+
+function parseWhatsAppLines(txt){
+  return txt.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+}
+function normalizeName(s){
+  return String(s||'').toLowerCase().replace(/[’']/g,"'").replace(/[^a-z0-9]+/g,'');
+}
+function cleanWhatsAppText(s){
+  return String(s||'').replace(/^\s*[\[\(]?\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}[\]\)]?\s*/,'').trim();
+}
+function looksLikeLocation(s){
+  const x=String(s||'').toLowerCase();
+  return /(wing|floor|flr|flat|room|toilet|corridor|lobby|stair|staircase|parking|basement|terrace|garden|office|meter|lift|shaft|kitchen|bedroom|hall|block|tower|unit|shop|area|location)/i.test(x);
+}
+function parseLocationParts(text){
+  const x=String(text||'').replace(/\s+/g,' ').trim();
+  let building='A Wing',floor='',location=x;
+  const bm=x.match(/\b([AB])\s*(?:wing|block|tower)\b/i);
+  if(bm) building=bm[1].toUpperCase()+' Wing';
+  const fm=x.match(/\b(?:LG\s*&\s*UG|UG|LG|\d+(?:st|nd|rd|th)?\s*floor|\d+\s*flr)\b/i);
+  if(fm) floor=fm[0];
+  const lm=x.match(/\b(?:flat|room|unit|shop)\s*[-#]?\s*[A-Za-z0-9-]+\b/i);
+  if(lm) location=lm[0]+(x.replace(lm[0],'').trim()? ' • '+x.replace(lm[0],'').trim():'');
+  return {building,floor,location};
+}
+async function fileToDataURL(file){
+  return await readFileDataURL(file);
+}
+function findNearbyText(lines, filename, fileIndex){
+  const base=filename.replace(/\.[^.]+$/,'');
+  const norm=normalizeName(base);
+  let best={text:'',score:0,index:-1};
+  lines.forEach((line,i)=>{
+    const clean=cleanWhatsAppText(line);
+    if(!clean)return;
+    let score=0;
+    const n=normalizeName(clean);
+    if(norm && n.includes(norm)) score+=6;
+    if(looksLikeLocation(clean)) score+=3;
+    if(i>=fileIndex-4 && i<=fileIndex+4) score+=2;
+    if(score>best.score) best={text:clean,score,index:i};
+  });
+  return best;
+}
+function guessImageLineIndex(lines, filename){
+  const n=normalizeName(filename);
+  for(let i=0;i<lines.length;i++){
+    const ln=normalizeName(lines[i]);
+    if(n && (ln.includes(n)||n.includes(ln)&&n.length>4)) return i;
+    if(lines[i].toLowerCase().includes(filename.toLowerCase())) return i;
+  }
+  return Math.min(lines.length-1,0);
+}
+async function prepareWhatsAppImport(){
+  const chat=document.getElementById('waChatFile').files[0];
+  const media=Array.from(document.getElementById('waMediaFiles').files||[]);
+  if(!chat){alert('Please select the exported WhatsApp .txt chat file.');return}
+  if(!media.length){alert('Please select the WhatsApp media images.');return}
+  if(media.length>300){alert('Please import up to 300 images at a time.');return}
+
+  let txt='';
+  try{txt=await chat.text()}catch(e){alert('Could not read the chat export.');return}
+  const lines=parseWhatsAppLines(txt);
+  waReview=[];
+  for(const f of media){
+    const idx=guessImageLineIndex(lines,f.name);
+    const nearby=findNearbyText(lines,f.name,idx);
+    const parsed=parseLocationParts(nearby.text||'');
+    let match='Needs review';
+    if(nearby.score>=7) match='Good match';
+    else if(nearby.score>=4) match='Possible match';
+    waReview.push({
+      include:true,file:f,imageData:await fileToDataURL(f),
+      building:parsed.building,floor:parsed.floor,location:parsed.location,
+      description:nearby.text||'',
+      match,sourceLine:nearby.index
+    });
+  }
+  renderWhatsAppReview();
+  document.getElementById('waImportSummary').textContent=
+    waReview.length+' image(s) prepared. Check the location fields, uncheck anything incorrect, then click Import Reviewed.';
+}
+function renderWhatsAppReview(){
+  const wrap=document.getElementById('waImportWrap'),body=document.getElementById('waImportBody');
+  wrap.style.display='block';body.innerHTML='';
+  waReview.forEach((x,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td><input type="checkbox" '+(x.include?'checked':'')+' onchange="waReview['+i+'].include=this.checked"></td>'+
+      '<td><img class="wa-review-img" src="'+x.imageData+'"></td>'+
+      '<td><select class="wa-edit" onchange="waReview['+i+'].building=this.value"><option '+(x.building==='A Wing'?'selected':'')+'>A Wing</option><option '+(x.building==='B Wing'?'selected':'')+'>B Wing</option><option '+(x.building==='Other'?'selected':'')+'>Other</option></select></td>'+
+      '<td><input class="wa-edit" value="'+escapeHtml(x.floor)+'" oninput="waReview['+i+'].floor=this.value"></td>'+
+      '<td><input class="wa-edit" value="'+escapeHtml(x.location)+'" oninput="waReview['+i+'].location=this.value"></td>'+
+      '<td><input class="wa-edit" style="min-width:240px" value="'+escapeHtml(x.description)+'" oninput="waReview['+i+'].description=this.value"></td>'+
+      '<td class="'+(x.match==='Good match'?'wa-match-good':'wa-match-warn')+'">'+escapeHtml(x.match)+'</td>';
+    body.appendChild(tr);
+  });
+}
+async function importReviewedWhatsApp(){
+  const selected=waReview.filter(x=>x.include);
+  if(!selected.length){alert('Nothing selected for import.');return}
+  let imported=0;
+  for(const x of selected){
+    if(!x.floor||!x.location){
+      continue;
+    }
+    const item={
+      id:nextSnagId(),
+      createdAt:new Date().toISOString(),
+      building:x.building||'Other',
+      floor:x.floor,
+      location:x.location,
+      description:x.description||'Imported from WhatsApp',
+      status:'Open',
+      imageData:x.imageData,
+      imageName:x.file.name
+    };
+    snags.unshift(item);imported++;
+    if(cloudReady) await cloudSaveSnag(item);
+  }
+  saveSnagsLocal();renderSnags();
+  const skipped=selected.length-imported;
+  document.getElementById('waImportSummary').textContent=
+    'Imported '+imported+' snag(s)'+(skipped?' • skipped '+skipped+' incomplete row(s)':'')+'.';
+  waReview=[];
+  document.getElementById('waImportBody').innerHTML='';
+  document.getElementById('waImportWrap').style.display='none';
+}
+function clearWhatsAppImport(){
+  waReview=[];
+  document.getElementById('waChatFile').value='';
+  document.getElementById('waMediaFiles').value='';
+  document.getElementById('waImportSummary').textContent='';
+  document.getElementById('waImportBody').innerHTML='';
+  document.getElementById('waImportWrap').style.display='none';
+}
+
+/* ================= Snag Points ================= */
+const SNAG_KEY='waterMeterSnags_v1';
+const SNAG_SEQ_KEY='waterMeterSnagSeq_v1';
+let snags=loadSnags();
+
+function loadSnags(){
+  try{
+    const x=JSON.parse(localStorage.getItem(SNAG_KEY)||'[]');
+    return Array.isArray(x)?x:[];
+  }catch(e){return []}
+}
+function saveSnagsLocal(){
+  localStorage.setItem(SNAG_KEY,JSON.stringify(snags));
+}
+function nextSnagId(){
+  let n=parseInt(localStorage.getItem(SNAG_SEQ_KEY)||'0',10)+1;
+  localStorage.setItem(SNAG_SEQ_KEY,String(n));
+  return 'S-'+String(n).padStart(4,'0');
+}
+function openSnags(){
+  group='snags';
+  document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group==='snags'));
+  document.getElementById('entryPanel').style.display='none';
+  document.getElementById('allPanel').style.display='none';
+  document.getElementById('resourcePanel').style.display='none';
+  document.getElementById('snagPanel').style.display='block';
+  document.getElementById('snagCloudLabel').textContent=cloudReady?'Shared snag register • cloud ready':'Local snag register • cloud not configured';
+  renderSnags();
+}
+function clearSnagForm(){
+  ['snagFloor','snagLocation','snagDescription'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('snagBuilding').value='A Wing';
+  document.getElementById('snagStatus').value='Open';
+  document.getElementById('snagPhoto').value='';
+  const p=document.getElementById('snagPreview');p.src='';p.style.display='none';
+}
+document.getElementById('snagPhoto')?.addEventListener('change',function(){
+  const f=this.files[0],p=document.getElementById('snagPreview');
+  if(!f){p.src='';p.style.display='none';return}
+  p.src=URL.createObjectURL(f);p.style.display='block';
+});
+function readFileDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);
+  });
+}
+async function saveSnag(){
+  const building=document.getElementById('snagBuilding').value;
+  const floor=document.getElementById('snagFloor').value.trim();
+  const location=document.getElementById('snagLocation').value.trim();
+  const description=document.getElementById('snagDescription').value.trim();
+  const status=document.getElementById('snagStatus').value;
+  const file=document.getElementById('snagPhoto').files[0];
+  if(!floor||!location){alert('Please enter Floor and Location.');return}
+  if(!file){alert('Please select or take the snag photo.');return}
+  if(!file.type.startsWith('image/')){alert('Please select an image file.');return}
+  if(file.size>8*1024*1024){alert('Please keep each snag image under 8 MB.');return}
+
+  const id=nextSnagId();
+  let imageData='';
+  try{imageData=await readFileDataURL(file)}catch(e){alert('Could not read the image.');return}
+  const item={
+    id,createdAt:new Date().toISOString(),building,floor,location,
+    description,status,imageData,imageName:file.name
+  };
+  snags.unshift(item);
+  saveSnagsLocal();
+  renderSnags();
+  clearSnagForm();
+  setStatus(id+' saved');
+  // If cloud snag tables are not yet configured, the local record remains safe.
+  if(cloudReady) await cloudSaveSnag(item);
+}
+async function cloudSaveSnag(item){
+  try{
+    // Image is stored as data in the JSON record for portability. For larger deployments,
+    // replace imageData with Supabase Storage URL.
+    await restFetch('snag_shared',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({
+      app_id:sharedAppId,snag_id:item.id,data:item,updated_at:new Date().toISOString()
+    })});
+  }catch(e){console.warn('Cloud snag save failed:',e)}
+}
+async function cloudPullSnags(){
+  if(!cloudReady||!sharedAppId)return;
+  try{
+    const data=await restFetch('snag_shared?select=snag_id%2Cdata&app_id=eq.'+encodeURIComponent(sharedAppId)+'&order=snag_id');
+    if(Array.isArray(data)&&data.length){
+      const map=new Map(snags.map(x=>[x.id,x]));
+      data.forEach(x=>{if(x.data?.id)map.set(x.data.id,x.data)});
+      snags=Array.from(map.values()).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+      saveSnagsLocal();renderSnags();
+    }
+  }catch(e){console.warn('Cloud snag pull failed:',e)}
+}
+function updateSnagStatus(id,status){
+  const x=snags.find(s=>s.id===id);if(!x)return;
+  x.status=status;x.updatedAt=new Date().toISOString();saveSnagsLocal();renderSnags();
+  if(cloudReady)cloudSaveSnag(x);
+}
+function deleteSnag(id){
+  if(role!=='master'){alert('Master access required to delete snags.');return}
+  if(!confirm('Delete '+id+'?'))return;
+  snags=snags.filter(x=>x.id!==id);saveSnagsLocal();renderSnags();
+}
+function renderSnags(){
+  const body=document.getElementById('snagBody');if(!body)return;
+  const q=(document.getElementById('snagSearch')?.value||'').toLowerCase();
+  const sf=document.getElementById('snagStatusFilter')?.value||'';
+  const bf=document.getElementById('snagBuildingFilter')?.value||'';
+  const list=snags.filter(s=>{
+    const hay=[s.id,s.building,s.floor,s.location,s.description,s.status].join(' ').toLowerCase();
+    return (!q||hay.includes(q))&&(!sf||s.status===sf)&&(!bf||s.building===bf);
+  });
+  body.innerHTML='';
+  if(!list.length){body.innerHTML='<tr><td colspan="9" class="empty">No snags found.</td></tr>';return}
+  list.forEach(s=>{
+    const tr=document.createElement('tr');
+    const d=s.createdAt?new Date(s.createdAt).toLocaleString():'';
+    tr.innerHTML=
+      '<td><b>'+escapeHtml(s.id)+'</b></td>'+
+      '<td>'+escapeHtml(d)+'</td>'+
+      '<td>'+escapeHtml(s.building)+'</td>'+
+      '<td>'+escapeHtml(s.floor)+'</td>'+
+      '<td>'+escapeHtml(s.location)+'</td>'+
+      '<td>'+(s.imageData?'<img class="snag-thumb" src="'+s.imageData+'" onclick="window.open(this.src,\'_blank\')">':'')+'</td>'+
+      '<td style="white-space:normal;min-width:220px">'+escapeHtml(s.description||'')+'</td>'+
+      '<td><select onchange="updateSnagStatus(\''+escapeHtml(s.id)+'\',this.value)"><option '+(s.status==='Open'?'selected':'')+'>Open</option><option '+(s.status==='In Progress'?'selected':'')+'>In Progress</option><option '+(s.status==='Rectified'?'selected':'')+'>Rectified</option></select></td>'+
+      '<td><button class="btn danger" onclick="deleteSnag(\''+escapeHtml(s.id)+'\')">Delete</button></td>';
+    body.appendChild(tr);
+  });
+}
+function snagTSV(){
+  const cols=['Snag ID','Date / Time','Building','Floor','Location','Image','Description','Status'];
+  const lines=[cols.join('\\t')];
+  snags.forEach(s=>lines.push([
+    s.id,new Date(s.createdAt).toLocaleString(),s.building,s.floor,s.location,
+    s.imageName||'Image',s.description||'',s.status
+  ].map(clean).join('\\t')));
+  return lines.join('\\r\\n');
+}
+function copySnagsTSV(){
+  if(!snags.length){alert('No snags saved.');return}
+  copyText(snagTSV()).then(()=>setStatus('Copied '+snags.length+' snags for Excel'));
+}
+function exportSnagsCSV(){
+  if(!snags.length){alert('No snags saved.');return}
+  const escCsv=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const header=['Snag ID','Date / Time','Building','Floor','Location','Image File','Description','Status'];
+  const rows=[header,...snags.map(s=>[
+    s.id,new Date(s.createdAt).toLocaleString(),s.building,s.floor,s.location,
+    s.imageName||'',s.description||'',s.status
+  ])];
+  const csv=rows.map(r=>r.map(escCsv).join(',')).join('\\r\\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='snag-register.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),500);
+  setStatus('Snag CSV exported');
+}
+
+
 document.getElementById('entryDate').value=today();ensureDate(today());renderEntry();document.querySelector('.meter input')?.focus()}
 function clearSection(){const d=document.getElementById('entryDate').value;if(!isEditableDate(d)){alert('Basic / Technician access can only clear today.');return}const r=ensureDate(d);if(!confirm('Clear '+groups[group].title+' for '+formatDate(d)+'?'))return;groups[group].cols.forEach(x=>r[x[0]]='');save();renderEntry()}
 function previousDay(){const d=new Date(document.getElementById('entryDate').value+'T00:00:00');d.setDate(d.getDate()-1);document.getElementById('entryDate').value=iso(d);renderEntry()}
