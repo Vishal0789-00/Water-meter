@@ -534,7 +534,8 @@ async function initCloud(){
     cloudReady=true;
     setCloudStatus('Shared sync ready',true);
     const rl=document.getElementById('resourceAppLabel'); if(rl) rl.textContent='Shared App ID: '+sharedAppId;
-    await cloudPull(true);\n    await cloudPullSnags();
+    await cloudPull(true);
+    await cloudPullSnags();
   }catch(e){cloudReady=false;setCloudStatus('Configuration error')}
 }
 async function restFetch(path, options={}){
