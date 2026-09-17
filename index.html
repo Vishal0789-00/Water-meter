@@ -113,7 +113,7 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
 <header class="top"><div class="topin"><div class="brand"><h1>Water Meter Entry</h1><p>Fast daily entry • A/B Wing • LWR/GWR • Excel copy</p></div><div class="datebox"><label for="entryDate">Date</label><input id="entryDate" type="date"></div></div></header>
 <main class="app">
   <div class="toolbar">
-    <button class="btn primary" data-master-basic="today-edit" onclick="saveCurrent()">Save reading</button>
+    <button class="btn primary" data-master-basic="today-edit" onclick="saveCurrent()">Save reading</button><button class="btn" type="button" onclick="openSnags()">🏗️ Snag Points</button>
     <button class="btn" data-master-basic="today-edit" onclick="newToday()">New today</button>
     <button class="btn green" onclick="copyFullRow()">Copy full Excel row</button>
     <button class="btn" onclick="copySection()">Copy this section</button>
@@ -175,7 +175,7 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
     </div>
   </section>
 
-<section id="snagPanel" class="panel snag-panel" style="display:none">
+<section id="snagPanel" class="panel snag-panel" style="display:none" aria-label="Snag Points">
   <div class="panelhead">
     <h2>🏗️ Snag Points</h2>
     <span id="snagCloudLabel">Shared snag register</span>
@@ -751,7 +751,17 @@ async function deleteSharedFile(id,path){
 function today(){const d=new Date();return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 function ensureDate(d){let r=rows.find(x=>x.date===d);if(!r){r=blank(d);rows.push(r);sort();localStorage.setItem(KEY,JSON.stringify(rows));}return r}
 function sort(){rows.sort((a,b)=>(a.date||'9999-99-99').localeCompare(b.date||'9999-99-99'))}
-function selectGroup(g){group=g;document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group===g));document.getElementById('resourcePanel').style.display='none';document.getElementById('snagPanel').style.display='none';document.getElementById('entryPanel').style.display=g==='all'?'none':'block';document.getElementById('allPanel').style.display=g==='all'?'block':'none';if(g==='all')renderAll();else renderEntry();renderExcelSource()}
+function selectGroup(g){
+  group=g;
+  document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group===g));
+  const rp=document.getElementById('resourcePanel'),sp=document.getElementById('snagPanel');
+  if(rp)rp.style.display='none';
+  if(sp)sp.style.display='none';
+  document.getElementById('entryPanel').style.display=g==='all'?'none':'block';
+  document.getElementById('allPanel').style.display=g==='all'?'block':'none';
+  if(g==='all')renderAll();else renderEntry();
+  renderExcelSource();
+}
 function renderEntry(){
   const d=document.getElementById('entryDate').value||today();
   document.getElementById('entryDate').value=d;
@@ -955,14 +965,20 @@ function nextSnagId(){
   return 'S-'+String(n).padStart(4,'0');
 }
 function openSnags(){
-  group='snags';
+  const entry=document.getElementById('entryPanel');
+  const all=document.getElementById('allPanel');
+  const resources=document.getElementById('resourcePanel');
+  const snag=document.getElementById('snagPanel');
+  if(!snag){alert('Snag Points panel could not be loaded.');return}
   document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group==='snags'));
-  document.getElementById('entryPanel').style.display='none';
-  document.getElementById('allPanel').style.display='none';
-  document.getElementById('resourcePanel').style.display='none';
-  document.getElementById('snagPanel').style.display='block';
-  document.getElementById('snagCloudLabel').textContent=cloudReady?'Shared snag register • cloud ready':'Local snag register • cloud not configured';
+  if(entry)entry.style.display='none';
+  if(all)all.style.display='none';
+  if(resources)resources.style.display='none';
+  snag.style.display='block';
+  const lab=document.getElementById('snagCloudLabel');
+  if(lab)lab.textContent=cloudReady?'Shared snag register • cloud ready':'Local snag register • cloud not configured';
   renderSnags();
+  snag.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function clearSnagForm(){
   ['snagFloor','snagLocation','snagDescription'].forEach(id=>document.getElementById(id).value='');
@@ -1096,6 +1112,13 @@ function exportSnagsCSV(){
 }
 
 
+const snagNavButton=document.querySelector('.sel[data-group="snags"]');
+if(snagNavButton){
+  snagNavButton.addEventListener('click',function(e){
+    e.preventDefault();
+    openSnags();
+  });
+}
 document.getElementById('entryDate').value=today();ensureDate(today());renderEntry();document.querySelector('.meter input')?.focus()}
 function clearSection(){const d=document.getElementById('entryDate').value;if(!isEditableDate(d)){alert('Basic / Technician access can only clear today.');return}const r=ensureDate(d);if(!confirm('Clear '+groups[group].title+' for '+formatDate(d)+'?'))return;groups[group].cols.forEach(x=>r[x[0]]='');save();renderEntry()}
 function previousDay(){const d=new Date(document.getElementById('entryDate').value+'T00:00:00');d.setDate(d.getDate()-1);document.getElementById('entryDate').value=iso(d);renderEntry()}
