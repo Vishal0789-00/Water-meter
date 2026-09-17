@@ -113,7 +113,7 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
 <header class="top"><div class="topin"><div class="brand"><h1>Water Meter Entry</h1><p>Fast daily entry • A/B Wing • LWR/GWR • Excel copy</p></div><div class="datebox"><label for="entryDate">Date</label><input id="entryDate" type="date"></div></div></header>
 <main class="app">
   <div class="toolbar">
-    <button class="btn primary" data-master-basic="today-edit" onclick="saveCurrent()">Save reading</button><button class="btn" type="button" onclick="openSnags()">🏗️ Snag Points</button>
+    <button class="btn primary" data-master-basic="today-edit" onclick="saveCurrent()">Save reading</button><button id="snagToolbarButton" class="btn" type="button">🏗️ Snag Points</button>
     <button class="btn" data-master-basic="today-edit" onclick="newToday()">New today</button>
     <button class="btn green" onclick="copyFullRow()">Copy full Excel row</button>
     <button class="btn" onclick="copySection()">Copy this section</button>
@@ -129,7 +129,7 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
     <button class="sel ag" data-group="a_gwr" onclick="selectGroup('a_gwr')">A Wing GWR<small>7 meters</small></button>
     <button class="sel b" data-group="b_lwr" onclick="selectGroup('b_lwr')">B Wing LWR<small>8 meters</small></button>
     <button class="sel bg" data-group="b_gwr" onclick="selectGroup('b_gwr')">B Wing GWR<small>7 meters</small></button>
-    <button class="sel all" data-group="all" onclick="selectGroup('all')">All meters<small>Excel view</small></button><button class="sel all" data-group="resources" onclick="openResources()">📝 Notes & Files<small>Shared documents</small></button><button class="sel all" data-group="snags" onclick="openSnags()">🏗️ Snag Points<small>Photos + locations</small></button>
+    <button class="sel all" data-group="all" onclick="selectGroup('all')">All meters<small>Excel view</small></button><button class="sel all" data-group="resources" onclick="openResources()">📝 Notes & Files<small>Shared documents</small></button><button id="snagNavButton" class="sel all" type="button" data-group="snags">🏗️ Snag Points<small>Photos + locations</small></button>
   </nav>
 
   <section id="entryPanel" class="panel">
@@ -969,16 +969,40 @@ function openSnags(){
   const all=document.getElementById('allPanel');
   const resources=document.getElementById('resourcePanel');
   const snag=document.getElementById('snagPanel');
-  if(!snag){alert('Snag Points panel could not be loaded.');return}
-  document.querySelectorAll('.sel').forEach(b=>b.classList.toggle('active',b.dataset.group==='snags'));
-  if(entry)entry.style.display='none';
-  if(all)all.style.display='none';
-  if(resources)resources.style.display='none';
+
+  if(!snag){
+    alert('Snag Points panel could not be loaded.');
+    return false;
+  }
+
+  // Snag navigation is independent of meter-group selection.
+  group='snags';
+  document.querySelectorAll('.sel').forEach(b=>{
+    b.classList.toggle('active',b.dataset.group==='snags');
+  });
+
+  if(entry) entry.style.display='none';
+  if(all) all.style.display='none';
+  if(resources) resources.style.display='none';
+
   snag.style.display='block';
+
   const lab=document.getElementById('snagCloudLabel');
-  if(lab)lab.textContent=cloudReady?'Shared snag register • cloud ready':'Local snag register • cloud not configured';
+  if(lab){
+    lab.textContent=cloudReady
+      ? 'Shared snag register • cloud ready'
+      : 'Local snag register • cloud not configured';
+  }
+
   renderSnags();
-  snag.scrollIntoView({behavior:'smooth',block:'start'});
+
+  // Do not depend on scrollIntoView for navigation.
+  window.setTimeout(()=>{
+    try{snag.scrollIntoView({behavior:'smooth',block:'start'});}
+    catch(e){snag.scrollIntoView();}
+  },0);
+
+  return false;
 }
 function clearSnagForm(){
   ['snagFloor','snagLocation','snagDescription'].forEach(id=>document.getElementById(id).value='');
@@ -1112,13 +1136,20 @@ function exportSnagsCSV(){
 }
 
 
-const snagNavButton=document.querySelector('.sel[data-group="snags"]');
-if(snagNavButton){
-  snagNavButton.addEventListener('click',function(e){
+const snagNavButton=document.getElementById('snagNavButton');
+const snagToolbarButton=document.getElementById('snagToolbarButton');
+
+function bindSnagNavigation(button){
+  if(!button)return;
+  button.addEventListener('click',function(e){
     e.preventDefault();
+    e.stopPropagation();
     openSnags();
-  });
+  },true);
 }
+
+bindSnagNavigation(snagNavButton);
+bindSnagNavigation(snagToolbarButton);
 document.getElementById('entryDate').value=today();ensureDate(today());renderEntry();document.querySelector('.meter input')?.focus()}
 function clearSection(){const d=document.getElementById('entryDate').value;if(!isEditableDate(d)){alert('Basic / Technician access can only clear today.');return}const r=ensureDate(d);if(!confirm('Clear '+groups[group].title+' for '+formatDate(d)+'?'))return;groups[group].cols.forEach(x=>r[x[0]]='');save();renderEntry()}
 function previousDay(){const d=new Date(document.getElementById('entryDate').value+'T00:00:00');d.setDate(d.getDate()-1);document.getElementById('entryDate').value=iso(d);renderEntry()}
