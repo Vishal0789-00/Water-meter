@@ -146,8 +146,10 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
       </div>
       <div id="fileBulkActions" class="resource-actions" style="display:none">
         <label class="btn"><input id="selectAllSharedFiles" type="checkbox" onchange="toggleAllSharedFiles(this.checked)" style="margin-right:6px">Select all</label>
-        <button class="btn danger" onclick="deleteSelectedSharedFiles()">Delete selected</button>
-        <button class="btn danger" onclick="deleteAllSharedFiles()">Delete all files</button>
+        <button class="btn primary" onclick="downloadSelectedSharedFiles()">Download selected</button>
+        <button class="btn primary" onclick="downloadAllSharedFiles()">Download all files</button>
+        <button class="btn danger master-only" onclick="deleteSelectedSharedFiles()">Delete selected</button>
+        <button class="btn danger master-only" onclick="deleteAllSharedFiles()">Delete all files</button>
       </div>
       <div id="filesList" class="resource-list"></div>
     </div>
@@ -592,7 +594,7 @@ async function loadSharedFiles(){
   const box=document.getElementById('filesList');
   const bulk=document.getElementById('fileBulkActions');
   box.innerHTML='<div class="resource-item">Loading files…</div>';
-  if(bulk)bulk.style.display=role==='master'?'flex':'none';
+  if(bulk)bulk.style.display='flex';
   const selectAll=document.getElementById('selectAllSharedFiles');if(selectAll)selectAll.checked=false;
   try{
     const data=await restFetch('app_files?select=id%2Cfile_name%2Cfile_path%2Cfile_url%2Cfile_size%2Cmime_type%2Ccreated_at&app_id=eq.'+encodeURIComponent(sharedAppId)+'&order=created_at.desc');
@@ -603,7 +605,7 @@ async function loadSharedFiles(){
       const title=document.createElement('div');title.className='rtitle';title.textContent=f.file_name;
       const meta=document.createElement('div');meta.className='rmeta';meta.textContent=(f.mime_type||'file')+' • '+formatResourceBytes(f.file_size)+' • '+(f.created_at?new Date(f.created_at).toLocaleString():'');
       const actions=document.createElement('div');actions.className='resource-actions';
-      if(role==='master'){
+      {
         const selectLabel=document.createElement('label');selectLabel.className='btn';
         const check=document.createElement('input');check.type='checkbox';check.className='shared-file-select';check.value=String(f.id);check.dataset.path=f.file_path;check.style.marginRight='6px';check.setAttribute('aria-label','Select '+f.file_name);
         check.addEventListener('change',updateSharedFileSelection);
@@ -622,11 +624,48 @@ function updateSharedFileSelection(){
   const all=document.getElementById('selectAllSharedFiles');
   if(all){all.checked=checks.length>0&&selected===checks.length;all.indeterminate=selected>0&&selected<checks.length;}
   const bulk=document.getElementById('fileBulkActions');
-  if(bulk)bulk.style.display=role==='master'?'flex':'none';
+  if(bulk)bulk.style.display=checks.length?'flex':'none';
+  document.querySelectorAll('#fileBulkActions .master-only').forEach(el=>el.style.display=role==='master'?'':'none');
 }
 function toggleAllSharedFiles(checked){
   document.querySelectorAll('.shared-file-select').forEach(c=>c.checked=checked);
   updateSharedFileSelection();
+}
+async function downloadSharedFile(file){
+  const response=await fetch(file.file_url);
+  if(!response.ok)throw new Error('Download HTTP '+response.status+' for '+file.file_name);
+  const blob=await response.blob();
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=file.file_name||'download';a.style.display='none';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+async function getSharedFilesForDownload(){
+  if(!requireCloudForResources())return null;
+  return await restFetch('app_files?select=id%2Cfile_name%2Cfile_path%2Cfile_url%2Cfile_size%2Cmime_type%2Ccreated_at&app_id=eq.'+encodeURIComponent(sharedAppId)+'&order=created_at.desc');
+}
+async function downloadSelectedSharedFiles(){
+  const ids=new Set(Array.from(document.querySelectorAll('.shared-file-select:checked')).map(c=>c.value));
+  if(!ids.size){alert('Select at least one file to download.');return}
+  try{
+    const files=await getSharedFilesForDownload();if(!files)return;
+    const selected=files.filter(f=>ids.has(String(f.id)));
+    let done=0,failed=[];
+    for(const file of selected){try{await downloadSharedFile(file);done++;await new Promise(resolve=>setTimeout(resolve,250));}catch(e){failed.push(file.file_name+': '+e.message)}}
+    setStatus('Downloaded '+done+' selected file(s)');
+    if(failed.length)alert('Downloaded '+done+' file(s). Failed downloads:\n'+failed.join('\n')+'\n\nIf the browser blocks multiple downloads, allow multiple downloads for this site.');
+  }catch(e){alert('Could not download selected files:\n\n'+e.message)}
+}
+async function downloadAllSharedFiles(){
+  try{
+    const files=await getSharedFilesForDownload();if(!files)return;
+    if(!files.length){alert('There are no shared files to download.');return}
+    if(!confirm('Download all '+files.length+' shared file(s)? Your browser may ask permission for multiple downloads.'))return;
+    let done=0,failed=[];
+    for(const file of files){try{await downloadSharedFile(file);done++;await new Promise(resolve=>setTimeout(resolve,250));}catch(e){failed.push(file.file_name+': '+e.message)}}
+    setStatus('Downloaded '+done+' of '+files.length+' file(s)');
+    if(failed.length)alert('Downloaded '+done+' of '+files.length+' file(s). Failed downloads:\n'+failed.join('\n')+'\n\nIf the browser blocks multiple downloads, allow multiple downloads for this site.');
+  }catch(e){alert('Could not download all files:\n\n'+e.message)}
 }
 async function deleteSelectedSharedFiles(){
   if(role!=='master'){alert('Master access required to delete shared files.');return}
