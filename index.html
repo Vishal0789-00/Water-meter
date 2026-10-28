@@ -140,9 +140,14 @@ body{min-height:100vh}button,input{font:inherit}button{border:0;cursor:pointer}.
     <div id="filesResource" style="display:none">
       <div class="resource-box">
         <label style="font-weight:800;font-size:13px">Upload image / PDF / Excel / document / other file</label>
-        <input id="sharedFileInput" type="file" style="display:block;margin-top:8px;width:100%">
-        <div class="resource-actions"><button class="btn primary" onclick="uploadSharedFile()">Upload file</button><button class="btn" onclick="loadSharedFiles()">Refresh files</button></div>
+        <input id="sharedFileInput" type="file" multiple style="display:block;margin-top:8px;width:100%">
+        <div class="resource-actions"><button class="btn primary" onclick="uploadSharedFile()">Upload selected files</button><button class="btn" onclick="loadSharedFiles()">Refresh files</button></div>
         <div class="resource-note">Recommended maximum: 50 MB per file.</div>
+      </div>
+      <div id="fileBulkActions" class="resource-actions" style="display:none">
+        <label class="btn"><input id="selectAllSharedFiles" type="checkbox" onchange="toggleAllSharedFiles(this.checked)" style="margin-right:6px">Select all</label>
+        <button class="btn danger" onclick="deleteSelectedSharedFiles()">Delete selected</button>
+        <button class="btn danger" onclick="deleteAllSharedFiles()">Delete all files</button>
       </div>
       <div id="filesList" class="resource-list"></div>
     </div>
@@ -558,45 +563,111 @@ async function deleteSharedNote(id){
 function clearNoteForm(){document.getElementById('noteEditId').value='';document.getElementById('noteTitle').value='';document.getElementById('noteBody').value=''}
 async function uploadSharedFile(){
   if(!requireCloudForResources())return;
-  const input=document.getElementById('sharedFileInput'),file=input.files[0];
-  if(!file){alert('Select a file first.');return}
-  if(file.size>50*1024*1024){alert('Please keep each file under 50 MB.');return}
-  const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=sharedAppId+'/'+Date.now()+'_'+safe;
-  try{
-    const res=await fetch(sb.url+'/storage/v1/object/meter-files/'+path,{method:'POST',headers:{'apikey':sb.key,'Authorization':'Bearer '+sb.key,'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},body:file});
-    const text=await res.text();if(!res.ok)throw new Error('Storage HTTP '+res.status+': '+text);
-    const publicUrl=sb.url+'/storage/v1/object/public/meter-files/'+path;
-    await restFetch('app_files',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({app_id:sharedAppId,file_name:file.name,file_path:path,file_url:publicUrl,file_size:file.size,mime_type:file.type||'application/octet-stream'})});
-    input.value='';await loadSharedFiles();setStatus('File uploaded and shared');
-  }catch(e){alert('File upload failed:\n\n'+e.message+'\n\nMake sure the Supabase Storage bucket "meter-files" exists and has the required policies.')}
+  const input=document.getElementById('sharedFileInput'),files=Array.from(input.files||[]);
+  if(!files.length){alert('Select at least one file first.');return}
+  const tooLarge=files.filter(file=>file.size>50*1024*1024);
+  if(tooLarge.length){alert('Each file must be under 50 MB. These files are too large:\n'+tooLarge.map(f=>f.name).join('\n'));return}
+  let uploaded=0,failed=[];
+  for(const file of files){
+    const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=sharedAppId+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'_'+safe;
+    try{
+      const res=await fetch(sb.url+'/storage/v1/object/meter-files/'+path,{method:'POST',headers:{'apikey':sb.key,'Authorization':'Bearer '+sb.key,'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},body:file});
+      const text=await res.text();if(!res.ok)throw new Error('Storage HTTP '+res.status+': '+text);
+      const publicUrl=sb.url+'/storage/v1/object/public/meter-files/'+path;
+      await restFetch('app_files',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({app_id:sharedAppId,file_name:file.name,file_path:path,file_url:publicUrl,file_size:file.size,mime_type:file.type||'application/octet-stream'})});
+      uploaded++;
+    }catch(e){failed.push(file.name+': '+e.message)}
+  }
+  input.value='';
+  await loadSharedFiles();
+  if(failed.length){
+    setStatus('Uploaded '+uploaded+' file(s); '+failed.length+' failed');
+    alert('Upload finished. Uploaded: '+uploaded+' of '+files.length+'\n\nFailed files:\n'+failed.join('\n')+'\n\nMake sure the Supabase Storage bucket "meter-files" exists and has the required policies.');
+  }else{
+    setStatus('Uploaded and shared '+uploaded+' file(s)');
+  }
 }
 async function loadSharedFiles(){
   if(!requireCloudForResources())return;
-  const box=document.getElementById('filesList');box.innerHTML='<div class="resource-item">Loading files…</div>';
+  const box=document.getElementById('filesList');
+  const bulk=document.getElementById('fileBulkActions');
+  box.innerHTML='<div class="resource-item">Loading files…</div>';
+  if(bulk)bulk.style.display=role==='master'?'flex':'none';
+  const selectAll=document.getElementById('selectAllSharedFiles');if(selectAll)selectAll.checked=false;
   try{
     const data=await restFetch('app_files?select=id%2Cfile_name%2Cfile_path%2Cfile_url%2Cfile_size%2Cmime_type%2Ccreated_at&app_id=eq.'+encodeURIComponent(sharedAppId)+'&order=created_at.desc');
-    box.innerHTML='';if(!data.length){box.innerHTML='<div class="resource-item"><span class="rmeta">No shared files uploaded yet.</span></div>';return}
+    box.innerHTML='';
+    if(!data.length){box.innerHTML='<div class="resource-item"><span class="rmeta">No shared files uploaded yet.</span></div>';return}
     data.forEach(f=>{
       const item=document.createElement('div');item.className='resource-item';
       const title=document.createElement('div');title.className='rtitle';title.textContent=f.file_name;
       const meta=document.createElement('div');meta.className='rmeta';meta.textContent=(f.mime_type||'file')+' • '+formatResourceBytes(f.file_size)+' • '+(f.created_at?new Date(f.created_at).toLocaleString():'');
       const actions=document.createElement('div');actions.className='resource-actions';
+      if(role==='master'){
+        const selectLabel=document.createElement('label');selectLabel.className='btn';
+        const check=document.createElement('input');check.type='checkbox';check.className='shared-file-select';check.value=String(f.id);check.dataset.path=f.file_path;check.style.marginRight='6px';check.setAttribute('aria-label','Select '+f.file_name);
+        check.addEventListener('change',updateSharedFileSelection);
+        selectLabel.append(check,document.createTextNode('Select'));actions.appendChild(selectLabel);
+      }
       const a=document.createElement('a');a.className='btn';a.textContent='Download / Open';a.href=f.file_url;a.target='_blank';a.rel='noopener';actions.appendChild(a);
       if(role==='master'){const del=document.createElement('button');del.className='btn danger';del.textContent='Delete';del.onclick=()=>deleteSharedFile(f.id,f.file_path);actions.appendChild(del)}
       item.append(title,meta,actions);box.appendChild(item);
     });
+    updateSharedFileSelection();
   }catch(e){box.innerHTML='<div class="resource-item"><span class="rmeta">Could not load files: '+escapeHtml(e.message)+'</span></div>'}
 }
-function formatResourceBytes(n){if(!n)return'0 B';const u=['B','KB','MB','GB'];let i=0,x=n;while(x>=1024&&i<u.length-1){x/=1024;i++}return x.toFixed(i?1:0)+' '+u[i]}
-async function deleteSharedFile(id,path){
+function updateSharedFileSelection(){
+  const checks=Array.from(document.querySelectorAll('.shared-file-select'));
+  const selected=checks.filter(c=>c.checked).length;
+  const all=document.getElementById('selectAllSharedFiles');
+  if(all){all.checked=checks.length>0&&selected===checks.length;all.indeterminate=selected>0&&selected<checks.length;}
+  const bulk=document.getElementById('fileBulkActions');
+  if(bulk)bulk.style.display=role==='master'?'flex':'none';
+}
+function toggleAllSharedFiles(checked){
+  document.querySelectorAll('.shared-file-select').forEach(c=>c.checked=checked);
+  updateSharedFileSelection();
+}
+async function deleteSelectedSharedFiles(){
   if(role!=='master'){alert('Master access required to delete shared files.');return}
-  if(!confirm('Delete this shared file?'))return;
+  const selected=Array.from(document.querySelectorAll('.shared-file-select:checked'));
+  if(!selected.length){alert('Select at least one file to delete.');return}
+  if(!confirm('Delete '+selected.length+' selected file(s)? This cannot be undone.'))return;
+  let deleted=0,failed=[];
+  for(const c of selected){
+    try{await deleteSharedFile(c.value,c.dataset.path,false,false);deleted++}
+    catch(e){failed.push(c.closest('.resource-item')?.querySelector('.rtitle')?.textContent+': '+e.message)}
+  }
+  await loadSharedFiles();
+  setStatus('Deleted '+deleted+' selected file(s)');
+  if(failed.length)alert('Deleted '+deleted+' file(s). These could not be deleted:\n'+failed.join('\n'));
+}
+async function deleteAllSharedFiles(){
+  if(role!=='master'){alert('Master access required to delete shared files.');return}
+  if(!requireCloudForResources())return;
+  if(!confirm('Delete ALL shared files for this App ID? This cannot be undone.'))return;
+  try{
+    const data=await restFetch('app_files?select=id%2Cfile_path&app_id=eq.'+encodeURIComponent(sharedAppId));
+    let deleted=0,failed=[];
+    for(const f of data){
+      try{await deleteSharedFile(f.id,f.file_path,false,false);deleted++}
+      catch(e){failed.push(f.file_path+': '+e.message)}
+    }
+    await loadSharedFiles();
+    setStatus('Deleted '+deleted+' of '+data.length+' shared file(s)');
+    if(failed.length)alert('Deleted '+deleted+' of '+data.length+' files. These could not be deleted:\n'+failed.join('\n'));
+  }catch(e){alert('Could not delete all files:\n\n'+e.message)}
+}
+function formatResourceBytes(n){if(!n)return'0 B';const u=['B','KB','MB','GB'];let i=0,x=n;while(x>=1024&&i<u.length-1){x/=1024;i++}return x.toFixed(i?1:0)+' '+u[i]}
+async function deleteSharedFile(id,path,askConfirm=true,refresh=true){
+  if(role!=='master')throw new Error('Master access required to delete shared files.');
+  if(askConfirm&&!confirm('Delete this shared file?'))return;
   try{
     const r=await fetch(sb.url+'/storage/v1/object/meter-files/'+path,{method:'DELETE',headers:{'apikey':sb.key,'Authorization':'Bearer '+sb.key}});
     if(!r.ok){const t=await r.text();throw new Error('Storage HTTP '+r.status+': '+t)}
     await restFetch('app_files?id=eq.'+encodeURIComponent(id)+'&app_id=eq.'+encodeURIComponent(sharedAppId),{method:'DELETE'});
-    await loadSharedFiles();setStatus('Shared file deleted');
-  }catch(e){alert('Could not delete file:\n\n'+e.message)}
+    if(refresh){await loadSharedFiles();setStatus('Shared file deleted')}
+  }catch(e){if(askConfirm){alert('Could not delete file:\n\n'+e.message);return}throw e}
 }
 function today(){const d=new Date();return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 function ensureDate(d){let r=rows.find(x=>x.date===d);if(!r){r=blank(d);rows.push(r);sort();localStorage.setItem(KEY,JSON.stringify(rows));}return r}
